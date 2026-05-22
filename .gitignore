@@ -4,3 +4,4 @@ coverage/
 .sandcastle/.env
 .env
 .pnpm-store/
+.DS_Store
