@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LocalGuide</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      min-width: 280px;
+      padding: 16px;
+      margin: 0;
+      color: #111827;
+      background: #ffffff;
+    }
+    h1 { font-size: 16px; margin: 0 0 8px; }
+    p { color: #6b7280; font-size: 13px; margin: 0 0 16px; }
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      font: inherit;
+      font-weight: 600;
+      color: #1f2937;
+      background: #f59e0b;
+      color: #1f2937;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #d97706; color: #ffffff; }
+    button:focus-visible { outline: 2px solid #1f2937; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <h1>LocalGuide</h1>
+  <p>Capture a workflow as a step-by-step Guide.</p>
+  <button id="startBtn" type="button">Start Recording</button>
+  <script src="popup.js"></script>
+</body>
+</html>

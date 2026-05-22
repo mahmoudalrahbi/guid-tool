@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "LocalGuide",
+  "version": "0.1.0",
+  "description": "Record browser workflows as annotated step-by-step Guides. All data stays on your machine.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "sidePanel",
+    "storage",
+    "unlimitedStorage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "classic"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/description.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "LocalGuide",
+    "default_popup": "popup.html"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
