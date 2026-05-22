@@ -26,10 +26,6 @@ function openDb() {
   return dbPromise;
 }
 
-function tx(db, storeNames, mode) {
-  return db.transaction(storeNames, mode);
-}
-
 function awaitTx(transaction) {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
@@ -61,7 +57,7 @@ async function createGuide({ title = 'Untitled Guide', description = '' } = {}) 
     createdAt: now,
     updatedAt: now,
   };
-  const transaction = tx(db, [STORE_GUIDES], 'readwrite');
+  const transaction = db.transaction([STORE_GUIDES], 'readwrite');
   transaction.objectStore(STORE_GUIDES).put(guide);
   await awaitTx(transaction);
   return guide;
@@ -69,14 +65,14 @@ async function createGuide({ title = 'Untitled Guide', description = '' } = {}) 
 
 async function getGuide(id) {
   const db = await openDb();
-  const transaction = tx(db, [STORE_GUIDES], 'readonly');
+  const transaction = db.transaction([STORE_GUIDES], 'readonly');
   const result = await reqAsPromise(transaction.objectStore(STORE_GUIDES).get(id));
   return result || null;
 }
 
 async function addStep(guideId, { description = '', screenshotBlob, elementMetadata = {} }) {
   const db = await openDb();
-  const transaction = tx(db, [STORE_GUIDES, STORE_STEPS], 'readwrite');
+  const transaction = db.transaction([STORE_GUIDES, STORE_STEPS], 'readwrite');
   const guidesStore = transaction.objectStore(STORE_GUIDES);
   const stepsStore = transaction.objectStore(STORE_STEPS);
 
@@ -111,7 +107,7 @@ async function getStepsForGuide(guideId) {
   const guide = await getGuide(guideId);
   if (!guide) return [];
 
-  const transaction = tx(db, [STORE_STEPS], 'readonly');
+  const transaction = db.transaction([STORE_STEPS], 'readonly');
   const store = transaction.objectStore(STORE_STEPS);
   const steps = await Promise.all(guide.stepIds.map(id => reqAsPromise(store.get(id))));
   return steps.filter(Boolean).sort((a, b) => a.order - b.order);
@@ -119,7 +115,7 @@ async function getStepsForGuide(guideId) {
 
 async function listGuides() {
   const db = await openDb();
-  const transaction = tx(db, [STORE_GUIDES], 'readonly');
+  const transaction = db.transaction([STORE_GUIDES], 'readonly');
   const all = await reqAsPromise(transaction.objectStore(STORE_GUIDES).getAll());
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
 }

@@ -2,6 +2,16 @@ const stepListEl = document.getElementById('stepList');
 const emptyStateEl = document.getElementById('emptyState');
 const completeBtn = document.getElementById('completeBtn');
 
+// Object URLs created for step thumbnails — revoked before each re-render so
+// the side panel doesn't leak blob URLs across a long Recording Session.
+const activeObjectUrls = [];
+
+function clearStepList() {
+  for (const url of activeObjectUrls) URL.revokeObjectURL(url);
+  activeObjectUrls.length = 0;
+  stepListEl.innerHTML = '';
+}
+
 async function getSession() {
   const response = await chrome.runtime.sendMessage({ action: 'get_session' });
   return response && response.session ? response.session : null;
@@ -11,12 +21,12 @@ async function render() {
   const session = await getSession();
   if (!session || !session.guideId) {
     emptyStateEl.style.display = '';
-    stepListEl.innerHTML = '';
+    clearStepList();
     return;
   }
   const steps = await self.LocalGuide.getStepsForGuide(session.guideId);
   emptyStateEl.style.display = steps.length === 0 ? '' : 'none';
-  stepListEl.innerHTML = '';
+  clearStepList();
   for (const [index, step] of steps.entries()) {
     const li = document.createElement('li');
     li.className = 'step';
@@ -37,7 +47,9 @@ async function render() {
       const img = document.createElement('img');
       img.className = 'step-thumb';
       img.alt = `Step ${index + 1} screenshot`;
-      img.src = URL.createObjectURL(step.screenshotBlob);
+      const url = URL.createObjectURL(step.screenshotBlob);
+      activeObjectUrls.push(url);
+      img.src = url;
       body.appendChild(img);
     }
 

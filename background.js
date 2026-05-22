@@ -40,28 +40,25 @@ async function handleStartRecording(tabId, windowId) {
   return { guideId: guide.id };
 }
 
-async function captureAnnotatedScreenshot(tabId, clickContext) {
+async function captureAnnotatedScreenshot(clickContext) {
   const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
   const response = await fetch(dataUrl);
   const sourceBlob = await response.blob();
   return self.LocalGuide.annotateScreenshot(sourceBlob, clickContext);
 }
 
-async function handleCaptureClick(message, sender) {
+async function handleCaptureClick(message) {
   const session = await getCurrentSession();
   if (!session || session.status !== 'recording') {
     return { success: true, captured: false, reason: 'not_recording' };
   }
 
-  const annotatedBlob = await captureAnnotatedScreenshot(
-    sender.tab && sender.tab.id,
-    {
-      x: message.x,
-      y: message.y,
-      viewportWidth: message.viewportWidth,
-      viewportHeight: message.viewportHeight,
-    },
-  );
+  const annotatedBlob = await captureAnnotatedScreenshot({
+    x: message.x,
+    y: message.y,
+    viewportWidth: message.viewportWidth,
+    viewportHeight: message.viewportHeight,
+  });
 
   const description = self.LocalGuide.describeStep(message.elementMetadata);
 
@@ -101,7 +98,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'start_recording':
           return handleStartRecording(message.tabId, message.windowId);
         case 'capture_click':
-          return handleCaptureClick(message, sender);
+          return handleCaptureClick(message);
         case 'complete_capture':
           return handleCompleteCapture();
         case 'get_session':
