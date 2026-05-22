@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LocalGuide — Editor</title>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 40px 24px; background: #f9fafb; color: #111827;
+      max-width: 960px; margin-inline: auto;
+    }
+    h1 { font-size: 24px; margin: 0 0 24px; }
+    .step {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .step-label {
+      font-size: 12px; font-weight: 600; color: #92400E; text-transform: uppercase;
+      letter-spacing: 0.04em; margin-bottom: 6px;
+    }
+    .step-description { font-size: 16px; margin: 0 0 12px; word-break: break-word; }
+    .step-description.placeholder { color: #9ca3af; font-style: italic; }
+    .step img {
+      width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;
+      display: block;
+    }
+    .actions { margin-bottom: 24px; }
+    button.export {
+      padding: 10px 16px; font: inherit; font-weight: 600;
+      background: #f59e0b; color: #1f2937; border: none; border-radius: 8px;
+      cursor: pointer;
+    }
+    button.export:hover { background: #d97706; color: #ffffff; }
+    .empty { color: #6b7280; padding: 24px; text-align: center;
+             border: 1px dashed #d1d5db; border-radius: 12px; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1 id="guideTitle">Untitled Guide</h1>
+  <div class="actions">
+    <button class="export" id="exportBtn" type="button">Export HTML</button>
+  </div>
+  <div id="stepsContainer"></div>
+  <script src="src/description.js"></script>
+  <script src="src/db.js"></script>
+  <script src="src/export-html.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>

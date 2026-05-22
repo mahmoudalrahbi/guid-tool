@@ -1,5 +1,17 @@
 {
+  "name": "localguide",
+  "version": "0.1.0",
+  "description": "Self-hosted Chrome extension for recording browser workflows as annotated step-by-step Guides.",
+  "private": true,
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "devDependencies": {
-    "@ai-hero/sandcastle": "^0.5.11"
+    "@ai-hero/sandcastle": "^0.5.11",
+    "fake-indexeddb": "^6.2.5",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
+    "typescript": "^6.0.3"
   }
 }
