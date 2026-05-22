@@ -7,9 +7,11 @@ Breakdown of [PRD #1](https://github.com/mahmoudalrahbi/guid-tool/issues/1) into
 | Surface | File | Informs slices |
 |---------|------|----------------|
 | Side Panel (Waiting, Recording Active, Paused) + Popup | [`LocalGuide.html`](LocalGuide.html) | 2, 4, 8 |
-| Editor | TBD — see slice 1 | 1, 5 |
+| Editor (Default, Drag-reorder, Export menu, Empty) | [`Editor.html`](Editor.html) | 1, 5 |
 
-Key decisions extracted from the design are in [`docs/adr/0003-ui-design-decisions.md`](../adr/0003-ui-design-decisions.md).
+Key decisions extracted from the designs:
+- Side Panel + Popup → [`docs/adr/0003-ui-design-decisions.md`](../adr/0003-ui-design-decisions.md)
+- Editor → [`docs/adr/0004-editor-design-decisions.md`](../adr/0004-editor-design-decisions.md)
 
 ## Slices
 

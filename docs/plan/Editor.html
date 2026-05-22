@@ -1,0 +1,1655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LocalGuide — Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0A0A0A;
+    --bg-1: #0F0F0F;
+    --bg-2: #1A1A1A;
+    --bg-3: #242424;
+    --bg-4: #2E2E2E;
+    --line: #2A2A2A;
+    --line-soft: #1F1F1F;
+    --text-1: #ECECEC;
+    --text-2: #9A9A9A;
+    --text-3: #5E5E5E;
+    --text-4: #3F3F3F;
+    --amber: #F59E0B;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --amber-line: rgba(245, 158, 11, 0.32);
+    --red: #EF4444;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1400px 700px at 50% -10%, #131313 0%, transparent 60%),
+      var(--bg-0);
+    color: var(--text-1);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: 48px 56px 96px;
+  }
+
+  /* ---------- Page header ---------- */
+  .page-header {
+    max-width: 1760px;
+    margin: 0 auto 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    position: relative;
+  }
+  .brand-mark::after {
+    content: "";
+    width: 10px; height: 10px;
+    border-radius: 999px;
+    background: var(--amber);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
+  }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand .sub { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+  .page-header .meta {
+    color: var(--text-3);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ---------- Canvas ---------- */
+  .canvas {
+    max-width: 1760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+  }
+  .cell { display: flex; flex-direction: column; gap: 14px; }
+  .cell-label {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .cell-label .num { color: var(--amber); }
+  .cell-label .title {
+    color: var(--text-1);
+    letter-spacing: 0.02em;
+    text-transform: none;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+  .cell-label .note { color: var(--text-3); }
+
+  /* ---------- Editor frame ---------- */
+  .editor-frame {
+    width: 100%;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+  }
+  .chrome-strip {
+    height: 32px;
+    background: #050505;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .chrome-strip .dot { width: 9px; height: 9px; border-radius: 999px; background: #2A2A2A; }
+  .chrome-strip .tab {
+    margin-left: 12px;
+    height: 22px;
+    padding: 0 12px 0 10px;
+    border-radius: 6px 6px 0 0;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-2);
+    letter-spacing: 0.02em;
+  }
+  .chrome-strip .tab .favicon {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    background: var(--amber);
+    box-shadow: 0 0 0 2px rgba(245,158,11,0.18);
+  }
+  .chrome-strip .label {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+
+  /* Editor toolbar */
+  .editor-toolbar {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--bg-1);
+  }
+  .toolbar-left {
+    display: flex; align-items: center; gap: 12px;
+    min-width: 0;
+  }
+  .toolbar-mark {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .toolbar-mark::after {
+    content: "";
+    width: 8px; height: 8px;
+    background: var(--amber);
+    border-radius: 999px;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.18);
+  }
+  .toolbar-crumbs {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px;
+    color: var(--text-3);
+    min-width: 0;
+  }
+  .toolbar-crumbs .crumb-root { color: var(--text-2); font-weight: 500; }
+  .toolbar-crumbs .sep { color: var(--text-4); }
+  .toolbar-crumbs .crumb-cur {
+    color: var(--text-1);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 340px;
+  }
+  .toolbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .save-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  .save-state .pip { width: 6px; height: 6px; border-radius: 999px; background: #4ADE80; opacity: 0.7; }
+  .save-state.saving .pip { background: var(--text-3); animation: pulse-soft 1.2s ease-in-out infinite; }
+  @keyframes pulse-soft { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 80ms ease;
+    user-select: none;
+    background: transparent;
+    color: var(--text-1);
+  }
+  .btn:active { transform: translateY(0.5px); }
+  .btn-primary {
+    background: var(--amber);
+    color: #1a1300;
+    font-weight: 600;
+    height: 38px;
+    padding: 0 18px;
+  }
+  .btn-primary:hover { background: #FFB224; }
+  .btn-primary svg { color: #1a1300; }
+  .btn-secondary {
+    background: var(--bg-3);
+    color: var(--text-1);
+    border-color: var(--line);
+  }
+  .btn-secondary:hover { background: var(--bg-4); border-color: #383838; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border-color: var(--line);
+  }
+  .btn-ghost:hover { color: var(--text-1); border-color: #383838; background: var(--bg-2); }
+
+  .ico-btn {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-2);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .ico-btn:hover {
+    background: var(--bg-3);
+    color: var(--text-1);
+  }
+  .ico-btn svg { display: block; }
+
+  /* ---------- Editor body ---------- */
+  .editor-body {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 720px;
+  }
+  @media (max-width: 1100px) {
+    .editor-body { grid-template-columns: 1fr; }
+    .editor-rail { display: none; }
+  }
+
+  /* Step rail (table of contents) */
+  .editor-rail {
+    border-right: 1px solid var(--line);
+    padding: 22px 16px 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+    overflow-y: auto;
+    max-height: 720px;
+    position: sticky;
+    top: 0;
+  }
+  .rail-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+  .rail-item {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-2);
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .rail-item:hover { background: var(--bg-2); color: var(--text-1); }
+  .rail-item.active {
+    background: var(--bg-2);
+    color: var(--text-1);
+  }
+  .rail-item .rn {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    text-align: right;
+    padding-top: 1px;
+  }
+  .rail-item.active .rn { color: var(--text-1); }
+  .rail-item .rt {
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rail-footer {
+    margin-top: 18px;
+    padding: 10px 8px;
+    border-top: 1px solid var(--line-soft);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Main scroll area */
+  .editor-main {
+    padding: 32px 56px 56px;
+    overflow-y: auto;
+    max-height: 720px;
+  }
+  .editor-main.compact { padding: 32px 40px 56px; }
+
+  /* Guide title + description block */
+  .guide-meta-block { margin-bottom: 36px; }
+  .title-input {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-1);
+    font-family: inherit;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    padding: 4px 0;
+    outline: none;
+  }
+  .title-input::placeholder { color: var(--text-4); }
+  .title-input:focus { box-shadow: inset 0 -1px 0 var(--amber-line); }
+  .desc-input {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 8px 0 0;
+    resize: none;
+    outline: none;
+    min-height: 44px;
+  }
+  .desc-input::placeholder { color: var(--text-4); }
+  .desc-input:focus { box-shadow: inset 0 -1px 0 var(--line); }
+  .guide-meta-row {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .guide-meta-row .dot { width: 3px; height: 3px; border-radius: 999px; background: var(--text-4); }
+  .guide-meta-row b { color: var(--text-1); font-weight: 500; }
+
+  /* Section header */
+  .section-head {
+    margin: 28px 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-head .lbl {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .section-head .right {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+  }
+
+  /* Step rows in Editor */
+  .step-list { display: flex; flex-direction: column; gap: 0; }
+  .step-row {
+    display: grid;
+    grid-template-columns: 32px 48px 280px 1fr auto;
+    gap: 16px;
+    padding: 18px 8px 18px 0;
+    border-bottom: 1px solid var(--line-soft);
+    position: relative;
+    transition: background 120ms ease;
+  }
+  .step-row:hover { background: rgba(255,255,255,0.014); }
+  .step-row:hover .drag-handle { opacity: 1; }
+  .step-row:hover .step-actions { opacity: 1; }
+  .step-row.dragging {
+    background: var(--bg-2);
+    border: 1px solid var(--amber-line);
+    border-radius: 8px;
+    box-shadow: 0 14px 30px -14px rgba(0,0,0,0.7), 0 0 0 1px var(--amber-line);
+    z-index: 2;
+  }
+
+  .drag-handle {
+    display: grid; place-items: center;
+    cursor: grab;
+    color: var(--text-4);
+    opacity: 0;
+    transition: opacity 120ms ease, color 120ms ease;
+    height: 24px;
+    align-self: start;
+    margin-top: 16px;
+  }
+  .drag-handle:hover { color: var(--text-2); }
+  .drag-handle:active { cursor: grabbing; }
+
+  .step-row .step-num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-3);
+    align-self: start;
+    padding-top: 18px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .step-row .step-shot {
+    width: 280px;
+    aspect-ratio: 16 / 10;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0D0D0D;
+    border: 1px solid var(--line);
+    position: relative;
+  }
+  .step-row .step-shot svg { display: block; width: 100%; height: 100%; }
+
+  .step-row .step-content {
+    min-width: 0;
+    padding-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step-edit-area {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-1);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.55;
+    width: 100%;
+    resize: none;
+    outline: none;
+    transition: background 120ms ease, border-color 120ms ease;
+    min-height: 64px;
+  }
+  .step-edit-area:hover { background: var(--bg-2); }
+  .step-edit-area:focus, .step-edit-area.is-focused {
+    background: var(--bg-2);
+    border-color: var(--amber-line);
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
+  }
+  .step-edit-area.is-empty { color: var(--text-3); font-style: italic; }
+  .step-edit-area::placeholder { color: var(--text-3); }
+
+  .step-foot {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .step-foot .url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .step-foot .pip { width: 2px; height: 2px; border-radius: 999px; background: var(--text-4); }
+  .step-foot .tag {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px 7px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 9.5px;
+  }
+  .step-foot .tag.nav { color: var(--text-2); }
+  .step-foot .tag.click { color: var(--text-2); }
+
+  .step-actions {
+    align-self: start;
+    padding-top: 12px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+  .step-actions .ico-btn:hover.is-danger { color: var(--red); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); }
+
+  /* Drag-target indicator */
+  .drag-target {
+    height: 2px;
+    background: var(--amber);
+    border-radius: 2px;
+    margin: 0 8px;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.18);
+    position: relative;
+  }
+  .drag-target::before {
+    content: "";
+    position: absolute;
+    left: -4px; top: -3px;
+    width: 8px; height: 8px;
+    background: var(--amber);
+    border-radius: 999px;
+  }
+
+  /* Empty state */
+  .editor-empty {
+    margin: 60px auto 0;
+    max-width: 420px;
+    text-align: center;
+    padding: 40px 28px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    background: var(--bg-2);
+  }
+  .editor-empty h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+  .editor-empty p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.55; }
+
+  /* Footer (sticky export bar) */
+  .editor-footer {
+    border-top: 1px solid var(--line);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background:
+      linear-gradient(180deg, rgba(245,158,11,0.025), transparent 40%),
+      var(--bg-1);
+  }
+  .editor-footer .left {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .editor-footer .left b { color: var(--text-1); font-weight: 500; }
+  .editor-footer .right { display: flex; align-items: center; gap: 10px; position: relative; }
+
+  /* Export menu */
+  .export-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    width: 280px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.8);
+  }
+  .export-menu .em-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 8px 10px 6px;
+  }
+  .export-item {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .export-item:hover { background: var(--bg-3); }
+  .export-item .em-icon {
+    width: 32px; height: 32px;
+    border-radius: 7px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-2);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .export-item .em-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .export-item .em-name { font-size: 13px; color: var(--text-1); font-weight: 500; }
+  .export-item .em-hint { font-size: 11px; color: var(--text-3); }
+  .export-item .em-arrow { color: var(--text-3); }
+
+  /* ---------- Description ---------- */
+  .description {
+    max-width: 920px;
+    margin: 96px auto 0;
+    padding: 40px 48px 48px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--bg-1);
+  }
+  .description h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .description .lede {
+    color: var(--text-2);
+    font-size: 14px;
+    margin: 0 0 32px;
+    max-width: 60ch;
+  }
+  .description h3 {
+    margin: 28px 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .description h3::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--amber);
+    border-radius: 2px;
+    margin-right: 10px;
+    transform: translateY(-1px);
+  }
+  .description p, .description li {
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .description p { max-width: 64ch; margin: 0 0 12px; }
+  .description ul { padding-left: 18px; margin: 0 0 12px; }
+  .description li { margin-bottom: 6px; }
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--bg-3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-1);
+    border: 1px solid var(--line);
+  }
+  .description .grid-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 36px;
+  }
+  @media (max-width: 760px) {
+    .description { padding: 28px; }
+    .description .grid-two { grid-template-columns: 1fr; }
+    body { padding: 24px 16px 64px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <h1>LocalGuide</h1>
+      <div class="sub">Chrome extension — Editor design</div>
+    </div>
+  </div>
+  <div class="meta">
+    surface · 1<br/>
+    editor · full-page tab<br/>
+    states · default / drag / export menu / empty
+  </div>
+</header>
+
+<section class="canvas">
+
+  <!-- =================== STATE 1: DEFAULT EDITOR =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">01</span>
+      <span class="title">Editor · Default</span>
+      <span class="note">— Guide opened post-Recording, ready to review, edit, and Export</span>
+    </div>
+    <div class="editor-frame" data-screen-label="01 Editor Default">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <div class="tab"><span class="favicon"></span><span>LocalGuide — How to invite a teammate</span></div>
+        <span class="label">CHROME · NEW TAB</span>
+      </div>
+
+      <div class="editor-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-mark"></div>
+          <div class="toolbar-crumbs">
+            <span class="crumb-root">LocalGuide</span>
+            <span class="sep">/</span>
+            <span class="crumb-cur">How to invite a teammate to the workspace</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div class="save-state"><span class="pip"></span><span>Saved · just now</span></div>
+          <button class="btn btn-ghost" title="Open Guide History">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 6.5h9M2 3.5h9M2 9.5h6"/></svg>
+            History
+          </button>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4L5 6.5 7.5 4"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <!-- Step rail -->
+        <aside class="editor-rail">
+          <div class="rail-label">Steps · 6</div>
+          <div class="rail-item"><span class="rn">01</span><span class="rt">Click "Sign in" in nav bar</span></div>
+          <div class="rail-item active"><span class="rn">02</span><span class="rt">Type your work email…</span></div>
+          <div class="rail-item"><span class="rn">03</span><span class="rt">Open Workspace settings</span></div>
+          <div class="rail-item"><span class="rn">04</span><span class="rt">Open the Members panel</span></div>
+          <div class="rail-item"><span class="rn">05</span><span class="rt">Click "Invite member"</span></div>
+          <div class="rail-item"><span class="rn">06</span><span class="rt">Paste teammate's email</span></div>
+          <div class="rail-footer">
+            <span>6 Steps</span>
+            <span>~1.4 MB</span>
+          </div>
+        </aside>
+
+        <!-- Main editing surface -->
+        <main class="editor-main">
+          <!-- Title + Description block -->
+          <div class="guide-meta-block">
+            <input class="title-input" value="How to invite a teammate to the workspace" />
+            <textarea class="desc-input" rows="2">Walk a new admin through inviting a teammate from the Acme dashboard, including the email confirmation and role selection.</textarea>
+            <div class="guide-meta-row">
+              <span><b>6</b> Steps</span>
+              <span class="dot"></span>
+              <span>Recorded May 22, 2026 · 10:42</span>
+              <span class="dot"></span>
+              <span>Last edited <b>just now</b></span>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <div class="lbl">Steps</div>
+            <div class="right">Drag any row to reorder · Hover for actions</div>
+          </div>
+
+          <div class="step-list">
+
+            <!-- Step 01 -->
+            <article class="step-row">
+              <div class="drag-handle" title="Drag to reorder">
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg>
+              </div>
+              <div class="step-num">01</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="8" width="50" height="6" rx="1" fill="#2A2A2A"/>
+                  <rect x="10" y="38" width="120" height="9" rx="1" fill="#262626"/>
+                  <rect x="10" y="56" width="200" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="65" width="180" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="74" width="160" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="225" y="34" width="46" height="14" rx="2" fill="#262626"/>
+                  <rect x="232" y="39" width="32" height="4" rx="1" fill="#3A3A3A"/>
+                  <circle cx="248" cy="41" r="14" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Click "Sign in" in the top right of the navigation bar.</textarea>
+                <div class="step-foot">
+                  <span class="tag click">Click</span>
+                  <span class="pip"></span>
+                  <span class="url">app.acme.com/welcome</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <button class="ico-btn" title="Duplicate Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="4" y="4" width="7" height="7" rx="1.4"/><path d="M2 9V3.5C2 2.7 2.6 2 3.5 2H9"/></svg>
+                </button>
+                <button class="ico-btn is-danger" title="Delete Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <!-- Step 02 — focused (editing) -->
+            <article class="step-row">
+              <div class="drag-handle" style="opacity: 1;" title="Drag to reorder">
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg>
+              </div>
+              <div class="step-num">02</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="100" y="42" width="80" height="8" rx="1" fill="#262626"/>
+                  <rect x="80" y="64" width="120" height="16" rx="3" fill="#1F1F1F" stroke="#F59E0B" stroke-width="1.2"/>
+                  <rect x="86" y="68" width="60" height="6" rx="1" fill="#262626"/>
+                  <rect x="80" y="88" width="120" height="16" rx="3" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="80" y="120" width="120" height="20" rx="3" fill="#262626"/>
+                  <rect x="120" y="127" width="40" height="6" rx="1" fill="#3A3A3A"/>
+                  <circle cx="140" cy="72" r="16" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area is-focused">Type your work email into the "Email address" field, then continue.</textarea>
+                <div class="step-foot">
+                  <span class="tag click">Click</span>
+                  <span class="pip"></span>
+                  <span class="url">app.acme.com/login</span>
+                </div>
+              </div>
+              <div class="step-actions" style="opacity: 1;">
+                <button class="ico-btn" title="Duplicate Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="4" y="4" width="7" height="7" rx="1.4"/><path d="M2 9V3.5C2 2.7 2.6 2 3.5 2H9"/></svg>
+                </button>
+                <button class="ico-btn is-danger" title="Delete Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <!-- Step 03 -->
+            <article class="step-row">
+              <div class="drag-handle" title="Drag to reorder">
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg>
+              </div>
+              <div class="step-num">03</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="36" width="60" height="105" rx="3" fill="#161616"/>
+                  <rect x="18" y="46" width="44" height="6" rx="1" fill="#262626"/>
+                  <rect x="18" y="60" width="40" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="18" y="70" width="44" height="4" rx="1" fill="#262626"/>
+                  <rect x="18" y="80" width="36" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="78" y="36" width="194" height="105" rx="3" fill="#161616"/>
+                  <rect x="86" y="44" width="80" height="8" rx="1" fill="#262626"/>
+                  <rect x="86" y="58" width="180" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="86" y="66" width="170" height="4" rx="1" fill="#1F1F1F"/>
+                  <circle cx="40" cy="82" r="13" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Open "Workspace settings" from the left sidebar.</textarea>
+                <div class="step-foot">
+                  <span class="tag click">Click</span>
+                  <span class="pip"></span>
+                  <span class="url">app.acme.com/dashboard</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <button class="ico-btn" title="Duplicate Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="4" y="4" width="7" height="7" rx="1.4"/><path d="M2 9V3.5C2 2.7 2.6 2 3.5 2H9"/></svg>
+                </button>
+                <button class="ico-btn is-danger" title="Delete Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <!-- Step 04 — navigation event -->
+            <article class="step-row">
+              <div class="drag-handle" title="Drag to reorder">
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg>
+              </div>
+              <div class="step-num">04</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="38" width="120" height="9" rx="1" fill="#262626"/>
+                  <rect x="10" y="60" width="260" height="30" rx="3" fill="#161616"/>
+                  <rect x="20" y="68" width="60" height="6" rx="1" fill="#262626"/>
+                  <rect x="20" y="78" width="80" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="220" y="68" width="40" height="14" rx="2" fill="#262626"/>
+                  <rect x="10" y="100" width="260" height="30" rx="3" fill="#161616"/>
+                  <rect x="20" y="108" width="60" height="6" rx="1" fill="#262626"/>
+                  <rect x="20" y="118" width="80" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="220" y="108" width="40" height="14" rx="2" fill="#262626"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Page navigated to the Members admin panel.</textarea>
+                <div class="step-foot">
+                  <span class="tag nav">Navigation</span>
+                  <span class="pip"></span>
+                  <span class="url">app.acme.com/settings/members</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <button class="ico-btn" title="Duplicate Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="4" y="4" width="7" height="7" rx="1.4"/><path d="M2 9V3.5C2 2.7 2.6 2 3.5 2H9"/></svg>
+                </button>
+                <button class="ico-btn is-danger" title="Delete Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <!-- Step 05 -->
+            <article class="step-row">
+              <div class="drag-handle" title="Drag to reorder">
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg>
+              </div>
+              <div class="step-num">05</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="36" width="260" height="36" rx="3" fill="#161616"/>
+                  <rect x="20" y="46" width="80" height="6" rx="1" fill="#262626"/>
+                  <rect x="20" y="58" width="100" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="80" width="260" height="36" rx="3" fill="#161616"/>
+                  <rect x="20" y="90" width="80" height="6" rx="1" fill="#262626"/>
+                  <rect x="20" y="102" width="100" height="4" rx="1" fill="#1F1F1F"/>
+                  <rect x="200" y="130" width="70" height="22" rx="3" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="214" y="138" width="42" height="6" rx="1" fill="#2E2E2E"/>
+                  <circle cx="235" cy="141" r="18" fill="none" stroke="#F59E0B" stroke-width="2.2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Click the "Invite member" button at the bottom right of the Members panel.</textarea>
+                <div class="step-foot">
+                  <span class="tag click">Click</span>
+                  <span class="pip"></span>
+                  <span class="url">app.acme.com/settings/members</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <button class="ico-btn" title="Duplicate Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="4" y="4" width="7" height="7" rx="1.4"/><path d="M2 9V3.5C2 2.7 2.6 2 3.5 2H9"/></svg>
+                </button>
+                <button class="ico-btn is-danger" title="Delete Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <!-- Step 06 — empty description placeholder -->
+            <article class="step-row">
+              <div class="drag-handle" title="Drag to reorder">
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg>
+              </div>
+              <div class="step-num">06</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="60" y="50" width="160" height="80" rx="6" fill="#161616" stroke="#2E2E2E"/>
+                  <rect x="74" y="62" width="100" height="8" rx="1" fill="#262626"/>
+                  <rect x="74" y="80" width="132" height="18" rx="3" fill="#1F1F1F" stroke="#F59E0B" stroke-width="1.4"/>
+                  <rect x="80" y="86" width="80" height="6" rx="1" fill="#262626"/>
+                  <rect x="74" y="108" width="60" height="14" rx="3" fill="#262626"/>
+                  <rect x="148" y="108" width="60" height="14" rx="3" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <circle cx="140" cy="89" r="20" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area is-empty" placeholder="Describe this Step"></textarea>
+                <div class="step-foot">
+                  <span class="tag click">Click</span>
+                  <span class="pip"></span>
+                  <span class="url">app.acme.com/settings/members/invite</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <button class="ico-btn" title="Duplicate Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="4" y="4" width="7" height="7" rx="1.4"/><path d="M2 9V3.5C2 2.7 2.6 2 3.5 2H9"/></svg>
+                </button>
+                <button class="ico-btn is-danger" title="Delete Step">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+                </button>
+              </div>
+            </article>
+
+          </div>
+        </main>
+      </div>
+
+      <!-- Sticky footer / export bar -->
+      <div class="editor-footer">
+        <div class="left">
+          <span><b>6</b> Steps · <b>1.4 MB</b></span>
+          <span class="pip" style="width:3px;height:3px;border-radius:999px;background:var(--text-4);"></span>
+          <span>All edits saved locally — IndexedDB</span>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost" title="Discard Guide">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h7M5.5 6v4M7.5 6v4M3.5 4L4 11h5l.5-7M5 4V2.5h3V4"/></svg>
+            Discard
+          </button>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4L5 6.5 7.5 4"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== STATE 2: DRAG-TO-REORDER =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">02</span>
+      <span class="title">Editor · Drag-to-reorder</span>
+      <span class="note">— Step 04 lifted, drop indicator between 02 and 03</span>
+    </div>
+    <div class="editor-frame" data-screen-label="02 Editor Drag">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <div class="tab"><span class="favicon"></span><span>LocalGuide — How to invite a teammate</span></div>
+        <span class="label">CHROME · NEW TAB</span>
+      </div>
+
+      <div class="editor-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-mark"></div>
+          <div class="toolbar-crumbs">
+            <span class="crumb-root">LocalGuide</span>
+            <span class="sep">/</span>
+            <span class="crumb-cur">How to invite a teammate to the workspace</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div class="save-state saving"><span class="pip"></span><span>Saving…</span></div>
+          <button class="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 6.5h9M2 3.5h9M2 9.5h6"/></svg>
+            History
+          </button>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4L5 6.5 7.5 4"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <aside class="editor-rail">
+          <div class="rail-label">Steps · 6</div>
+          <div class="rail-item"><span class="rn">01</span><span class="rt">Click "Sign in" in nav bar</span></div>
+          <div class="rail-item"><span class="rn">02</span><span class="rt">Type your work email…</span></div>
+          <div class="rail-item active" style="border:1px dashed var(--amber-line); background: var(--amber-soft);"><span class="rn" style="color: var(--amber);">→</span><span class="rt" style="color: var(--text-1);">Insert here</span></div>
+          <div class="rail-item"><span class="rn">03</span><span class="rt">Open Workspace settings</span></div>
+          <div class="rail-item" style="opacity:.45;"><span class="rn">04</span><span class="rt">Page navigated to Members</span></div>
+          <div class="rail-item"><span class="rn">05</span><span class="rt">Click "Invite member"</span></div>
+          <div class="rail-item"><span class="rn">06</span><span class="rt">(no description)</span></div>
+          <div class="rail-footer">
+            <span>6 Steps</span>
+            <span>~1.4 MB</span>
+          </div>
+        </aside>
+
+        <main class="editor-main compact">
+          <div class="section-head" style="margin-top: 0;">
+            <div class="lbl">Reordering · release to drop</div>
+            <div class="right">Press <span style="font-family:var(--font-mono); border:1px solid var(--line); border-radius:4px; padding:1px 5px; font-size:10px;">Esc</span> to cancel</div>
+          </div>
+
+          <div class="step-list">
+            <!-- Step 01 -->
+            <article class="step-row">
+              <div class="drag-handle"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num">01</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="38" width="120" height="9" rx="1" fill="#262626"/>
+                  <rect x="225" y="34" width="46" height="14" rx="2" fill="#262626"/>
+                  <circle cx="248" cy="41" r="14" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Click "Sign in" in the top right of the navigation bar.</textarea>
+                <div class="step-foot"><span class="tag click">Click</span><span class="pip"></span><span class="url">app.acme.com/welcome</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+
+            <!-- Step 02 -->
+            <article class="step-row">
+              <div class="drag-handle"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num">02</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="80" y="64" width="120" height="16" rx="3" fill="#1F1F1F" stroke="#F59E0B" stroke-width="1.2"/>
+                  <circle cx="140" cy="72" r="16" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Type your work email into the "Email address" field, then continue.</textarea>
+                <div class="step-foot"><span class="tag click">Click</span><span class="pip"></span><span class="url">app.acme.com/login</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+
+            <!-- DROP TARGET INDICATOR -->
+            <div class="drag-target"></div>
+
+            <!-- DRAGGING STEP (Step 04, lifted) -->
+            <article class="step-row dragging" style="margin: 6px 0;">
+              <div class="drag-handle" style="opacity: 1; color: var(--amber);"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num" style="color: var(--amber);">04</div>
+              <div class="step-shot" style="border-color: var(--amber-line);">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="60" width="260" height="30" rx="3" fill="#161616"/>
+                  <rect x="10" y="100" width="260" height="30" rx="3" fill="#161616"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area" readonly>Page navigated to the Members admin panel.</textarea>
+                <div class="step-foot"><span class="tag nav">Navigation</span><span class="pip"></span><span class="url">app.acme.com/settings/members</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+
+            <!-- Step 03 -->
+            <article class="step-row" style="opacity:.55;">
+              <div class="drag-handle"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num">03</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="10" y="36" width="60" height="105" rx="3" fill="#161616"/>
+                  <circle cx="40" cy="82" r="13" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area" readonly>Open "Workspace settings" from the left sidebar.</textarea>
+                <div class="step-foot"><span class="tag click">Click</span><span class="pip"></span><span class="url">app.acme.com/dashboard</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+
+            <!-- Step 05 -->
+            <article class="step-row" style="opacity:.55;">
+              <div class="drag-handle"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num">05</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="200" y="130" width="70" height="22" rx="3" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <circle cx="235" cy="141" r="18" fill="none" stroke="#F59E0B" stroke-width="2.2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area" readonly>Click the "Invite member" button at the bottom right of the Members panel.</textarea>
+                <div class="step-foot"><span class="tag click">Click</span><span class="pip"></span><span class="url">app.acme.com/settings/members</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+          </div>
+        </main>
+      </div>
+
+      <div class="editor-footer">
+        <div class="left">
+          <span><b>6</b> Steps · <b>1.4 MB</b></span>
+          <span class="pip" style="width:3px;height:3px;border-radius:999px;background:var(--text-4);"></span>
+          <span>Reordering — release to commit</span>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost">Discard</button>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4L5 6.5 7.5 4"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== STATE 3: EXPORT MENU OPEN =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">03</span>
+      <span class="title">Editor · Export menu open</span>
+      <span class="note">— four formats; PDF is the default highlighted choice</span>
+    </div>
+    <div class="editor-frame" data-screen-label="03 Editor Export Menu">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <div class="tab"><span class="favicon"></span><span>LocalGuide — How to invite a teammate</span></div>
+        <span class="label">CHROME · NEW TAB</span>
+      </div>
+
+      <div class="editor-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-mark"></div>
+          <div class="toolbar-crumbs">
+            <span class="crumb-root">LocalGuide</span>
+            <span class="sep">/</span>
+            <span class="crumb-cur">How to invite a teammate to the workspace</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div class="save-state"><span class="pip"></span><span>Saved · just now</span></div>
+          <button class="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 6.5h9M2 3.5h9M2 9.5h6"/></svg>
+            History
+          </button>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4L5 6.5 7.5 4"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <aside class="editor-rail">
+          <div class="rail-label">Steps · 6</div>
+          <div class="rail-item"><span class="rn">01</span><span class="rt">Click "Sign in" in nav bar</span></div>
+          <div class="rail-item"><span class="rn">02</span><span class="rt">Type your work email…</span></div>
+          <div class="rail-item"><span class="rn">03</span><span class="rt">Open Workspace settings</span></div>
+          <div class="rail-item"><span class="rn">04</span><span class="rt">Open the Members panel</span></div>
+          <div class="rail-item"><span class="rn">05</span><span class="rt">Click "Invite member"</span></div>
+          <div class="rail-item"><span class="rn">06</span><span class="rt">Paste teammate's email</span></div>
+          <div class="rail-footer">
+            <span>6 Steps</span>
+            <span>~1.4 MB</span>
+          </div>
+        </aside>
+
+        <main class="editor-main">
+          <div class="guide-meta-block">
+            <input class="title-input" value="How to invite a teammate to the workspace" />
+            <textarea class="desc-input" rows="2">Walk a new admin through inviting a teammate from the Acme dashboard, including the email confirmation and role selection.</textarea>
+            <div class="guide-meta-row">
+              <span><b>6</b> Steps</span>
+              <span class="dot"></span>
+              <span>Recorded May 22, 2026 · 10:42</span>
+              <span class="dot"></span>
+              <span>Last edited <b>2 min ago</b></span>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <div class="lbl">Steps</div>
+            <div class="right">Choose an export format below ↓</div>
+          </div>
+
+          <div class="step-list">
+            <!-- Compressed step preview rows -->
+            <article class="step-row">
+              <div class="drag-handle"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num">01</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="225" y="34" width="46" height="14" rx="2" fill="#262626"/>
+                  <circle cx="248" cy="41" r="14" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Click "Sign in" in the top right of the navigation bar.</textarea>
+                <div class="step-foot"><span class="tag click">Click</span><span class="pip"></span><span class="url">app.acme.com/welcome</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+
+            <article class="step-row">
+              <div class="drag-handle"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="7" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="7" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="7" cy="13" r="1.2"/></svg></div>
+              <div class="step-num">02</div>
+              <div class="step-shot">
+                <svg viewBox="0 0 280 175" preserveAspectRatio="xMidYMid slice">
+                  <rect width="280" height="175" fill="#101010"/>
+                  <rect y="0" width="280" height="22" fill="#1A1A1A"/>
+                  <rect x="80" y="64" width="120" height="16" rx="3" fill="#1F1F1F" stroke="#F59E0B" stroke-width="1.2"/>
+                  <circle cx="140" cy="72" r="16" fill="none" stroke="#F59E0B" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="step-content">
+                <textarea class="step-edit-area">Type your work email into the "Email address" field, then continue.</textarea>
+                <div class="step-foot"><span class="tag click">Click</span><span class="pip"></span><span class="url">app.acme.com/login</span></div>
+              </div>
+              <div class="step-actions"></div>
+            </article>
+          </div>
+        </main>
+      </div>
+
+      <div class="editor-footer">
+        <div class="left">
+          <span><b>6</b> Steps · <b>1.4 MB</b></span>
+          <span class="pip" style="width:3px;height:3px;border-radius:999px;background:var(--text-4);"></span>
+          <span>All edits saved locally — IndexedDB</span>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost">Discard</button>
+          <button class="btn btn-primary" style="position: relative;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(180deg);"><path d="M2.5 4L5 6.5 7.5 4"/></svg>
+          </button>
+          <div class="export-menu">
+            <div class="em-label">Export Guide as…</div>
+            <div class="export-item">
+              <div class="em-icon">PDF</div>
+              <div class="em-text">
+                <span class="em-name">PDF document</span>
+                <span class="em-hint">Print-ready · ~1.6 MB</span>
+              </div>
+              <div class="em-arrow"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h4M5 4l2 2-2 2"/></svg></div>
+            </div>
+            <div class="export-item">
+              <div class="em-icon">DOCX</div>
+              <div class="em-text">
+                <span class="em-name">Word document</span>
+                <span class="em-hint">Editable in Word, Google Docs</span>
+              </div>
+              <div class="em-arrow"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h4M5 4l2 2-2 2"/></svg></div>
+            </div>
+            <div class="export-item">
+              <div class="em-icon">HTML</div>
+              <div class="em-text">
+                <span class="em-name">Self-contained HTML</span>
+                <span class="em-hint">Opens in any browser, images embedded</span>
+              </div>
+              <div class="em-arrow"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h4M5 4l2 2-2 2"/></svg></div>
+            </div>
+            <div class="export-item">
+              <div class="em-icon">MD</div>
+              <div class="em-text">
+                <span class="em-name">Markdown</span>
+                <span class="em-hint">Paste into Notion, Confluence, GitHub</span>
+              </div>
+              <div class="em-arrow"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h4M5 4l2 2-2 2"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== STATE 4: EMPTY EDITOR =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">04</span>
+      <span class="title">Editor · Empty</span>
+      <span class="note">— all Steps deleted; Export disabled until ≥ 1 Step exists</span>
+    </div>
+    <div class="editor-frame" data-screen-label="04 Editor Empty">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <div class="tab"><span class="favicon"></span><span>LocalGuide — Untitled Guide</span></div>
+        <span class="label">CHROME · NEW TAB</span>
+      </div>
+
+      <div class="editor-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-mark"></div>
+          <div class="toolbar-crumbs">
+            <span class="crumb-root">LocalGuide</span>
+            <span class="sep">/</span>
+            <span class="crumb-cur" style="color: var(--text-3);">Untitled Guide</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div class="save-state"><span class="pip" style="background: var(--text-4);"></span><span style="color: var(--text-3);">Nothing to save</span></div>
+          <button class="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 6.5h9M2 3.5h9M2 9.5h6"/></svg>
+            History
+          </button>
+          <button class="btn btn-ghost" disabled style="opacity:.45; cursor:not-allowed;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <aside class="editor-rail">
+          <div class="rail-label">Steps · 0</div>
+          <div style="font-size: 12px; color: var(--text-3); padding: 8px 4px; line-height: 1.5;">
+            No Steps yet. Open the Side Panel and click <b style="color: var(--text-2);">Start Recording</b> to capture a workflow.
+          </div>
+          <div class="rail-footer">
+            <span>0 Steps</span>
+            <span>0 KB</span>
+          </div>
+        </aside>
+
+        <main class="editor-main">
+          <div class="guide-meta-block">
+            <input class="title-input" placeholder="Untitled Guide" />
+            <textarea class="desc-input" rows="2" placeholder="Add a one-line description so the Reader knows what this Guide is for."></textarea>
+            <div class="guide-meta-row">
+              <span><b>0</b> Steps</span>
+              <span class="dot"></span>
+              <span>Created May 22, 2026 · 10:42</span>
+              <span class="dot"></span>
+              <span>Not yet edited</span>
+            </div>
+          </div>
+
+          <div class="editor-empty">
+            <h3>No Steps in this Guide</h3>
+            <p>Open the LocalGuide Side Panel and click <b style="color: var(--text-1);">Start Recording</b> in the popup. Every click and navigation in the active tab becomes a Step.</p>
+          </div>
+        </main>
+      </div>
+
+      <div class="editor-footer">
+        <div class="left">
+          <span><b>0</b> Steps · <b>0 KB</b></span>
+          <span class="pip" style="width:3px;height:3px;border-radius:999px;background:var(--text-4);"></span>
+          <span>Export disabled until first Step exists</span>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost">Discard</button>
+          <button class="btn btn-primary" disabled style="opacity:.45; cursor:not-allowed;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v7M3.5 6L6.5 9 9.5 6M2 11h9"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- =================== DESIGN DESCRIPTION =================== -->
+<section class="description">
+  <h2>Editor — Design Description</h2>
+  <p class="lede">
+    A full-page review surface that opens in a new tab after the Recorder hits Complete Capture.
+    The Editor is where a freshly-recorded Guide becomes a publishable document: review the auto-generated
+    descriptions, drop bad Steps, fix the order, set a Title — then Export.
+  </p>
+
+  <h3>Layout</h3>
+  <p>
+    A three-region frame: a slim <b>toolbar</b> across the top (brand, breadcrumb, save state, Export),
+    a two-column body (a <b>narrow Step rail</b> on the left for navigation, a <b>main editing column</b>
+    on the right), and a sticky <b>footer</b> anchoring Export at the bottom of the viewport. The
+    footer Export and the toolbar Export are intentionally duplicated: the Recorder reads Steps top-down
+    and the bottom button is what's under their thumb when they finish.
+  </p>
+  <p>
+    The Step rail collapses on narrow viewports (under 1100px). The main column never wider than
+    a comfortable single-column reading width — Steps are reviewed sequentially, not scanned in parallel.
+  </p>
+
+  <h3>Step row anatomy</h3>
+  <p>
+    Five-column grid per row: <code>drag handle · step number · Annotated Screenshot · description ·
+    actions</code>. The Annotated Screenshot is fixed-width (280 px, 16:10) so every row aligns vertically —
+    descriptions sit on a consistent left edge. The description is an inline-edit <code>&lt;textarea&gt;</code>;
+    clicking anywhere on the description text enters edit mode, and an amber focus ring confirms which
+    Step is being edited.
+  </p>
+  <p>
+    Drag handle and per-Step action buttons (duplicate, delete) reveal on hover — never crowding the row
+    at rest. Per the existing rule in <code>docs/adr/0003-ui-design-decisions.md</code>, an empty rule-based
+    description renders the muted placeholder <i>"Describe this Step"</i>; the row never collapses.
+  </p>
+
+  <div class="grid-two">
+    <div>
+      <h3>The Amber Accent</h3>
+      <p>
+        Continuing the rule from the Side Panel design: <code>#F59E0B</code> is a signal color, not a
+        brand accent. In the Editor it appears in exactly three roles:
+      </p>
+      <ul>
+        <li>The <b>Annotated Screenshot highlight ring</b> (drawn into the captured pixels, not CSS).</li>
+        <li>The <b>primary Export CTA</b> in the top toolbar and the sticky footer.</li>
+        <li>The <b>focus ring</b> on the Step description currently being edited, and the
+        <b>drop-target indicator</b> while drag-reordering.</li>
+      </ul>
+      <p>
+        No amber on the save-state pip, the breadcrumb, the rail, the section labels, or any secondary
+        button. If any of those creep into amber, the Export button stops reading as the one action
+        that ships work.
+      </p>
+    </div>
+    <div>
+      <h3>Drag-to-reorder</h3>
+      <p>
+        Hover any row → drag handle fades in. Mouse-down on the handle lifts the row into a "dragging"
+        treatment: amber outline, slight shadow, opacity 100% while siblings drop to 55%. An amber
+        2px <b>drop-target indicator</b> (with a leading dot) appears between rows where the cursor is
+        hovering. Releasing commits the new order; pressing <code>Esc</code> cancels.
+      </p>
+      <p>
+        The Step rail mirrors the same interaction with an <i>Insert here</i> slot, so the Recorder can
+        also use the rail for coarse repositioning across long Guides without scrolling the main column.
+      </p>
+    </div>
+  </div>
+
+  <h3>Title and Description fields</h3>
+  <p>
+    The Title is an unbordered, oversized input (28px Inter SemiBold) that reads as a heading until
+    focused — the same affordance pattern as Notion. The Description sits directly below as a
+    two-line auto-growing textarea. Both placeholder values (<i>"Untitled Guide"</i>, <i>"Add a
+    one-line description…"</i>) appear in muted text so the empty state still communicates what the
+    field is for.
+  </p>
+  <p>
+    A monospace meta row below the Title shows the Step count, recording timestamp, and "last
+    edited" stamp — the only place in the Editor where time-relative copy is allowed.
+  </p>
+
+  <h3>Auto-save and Export</h3>
+  <p>
+    There is no explicit Save button. Every keystroke debounces a write to IndexedDB; the toolbar
+    pip flips between <b>Saved · just now</b> (green) and <b>Saving…</b> (animated grey) so the
+    Recorder always sees that work is durable. Closing the tab mid-edit is safe.
+  </p>
+  <p>
+    Export is the only explicit action in the Editor. Clicking it opens a menu listing the four
+    formats with a one-line "what this is good for" hint each — the Recorder shouldn't need to
+    guess what the file extension implies. The Export button is disabled when the Guide has zero
+    Steps (the only invalid export state).
+  </p>
+
+  <h3>Watch Out For (Implementation Notes for Slice 5)</h3>
+  <ul>
+    <li>
+      <b>Auto-save races deletion.</b> When the Recorder deletes a Step while a debounced save for
+      that Step's description is in flight, the save can re-insert it. Cancel pending writes by
+      Step ID on delete; reconcile on the IndexedDB transaction layer.
+    </li>
+    <li>
+      <b>Step renumbering on reorder.</b> The Step <i>id</i> stays stable across reorders; the
+      <i>order</i> field on each Step is what changes. The mono "01 / 02 / …" labels are computed
+      from array index, not stored. This matters for the Step rail's "Insert here" indicator —
+      it operates on positions, not IDs.
+    </li>
+    <li>
+      <b>Delete confirmation.</b> Single-click delete with a 5-second undo toast is preferred over
+      a confirm dialog — the Recorder will be deleting many junk Steps in a row and a modal each
+      time is painful. The undo toast must restore the Step's screenshot blob, not just its
+      description.
+    </li>
+    <li>
+      <b>Annotated Screenshot is immutable post-capture.</b> The Editor can delete a Step but cannot
+      re-draw its highlight or replace its screenshot. If the Recorder wants the click in a different
+      spot, they re-record that fragment of the Session. Don't add an "edit screenshot" affordance —
+      it implies capabilities we won't ship.
+    </li>
+    <li>
+      <b>Step rail and main column scroll independently.</b> The rail is sticky to the top of the
+      body; the main column scrolls. Clicking a rail item scroll-anchors the matching Step into
+      view in the main column with a brief amber-tinted highlight flash so the Recorder can confirm
+      the jump.
+    </li>
+    <li>
+      <b>Empty description placeholder must persist after edit-and-clear.</b> If the Recorder types
+      a description and then deletes it back to empty string, the <i>"Describe this Step"</i>
+      placeholder reappears. Don't treat "user emptied" differently from "rule-based produced empty".
+    </li>
+    <li>
+      <b>Export menu position.</b> The menu opens above the footer Export button. Anchor it to the
+      bottom-right of the button's bounding rect and clamp into the viewport — at narrow widths,
+      the 280px menu must not overflow the right edge.
+    </li>
+    <li>
+      <b>Footer storage indicator.</b> Mirrors the Popup's storage warning rule (ADR 0003): if
+      total IndexedDB usage crosses ~80% of quota while the Editor is open, the footer
+      "<i>1.4 MB</i>" stamp recolors amber. Recorder must learn this <i>before</i> Export
+      silently fails, not after.
+    </li>
+    <li>
+      <b>Discard ≠ Delete Guide.</b> The Discard button in the footer trashes the in-progress
+      Guide and returns the Recorder to the Popup. It does not remove already-Exported files.
+      Confirm dialog required — this one is destructive enough to justify the modal.
+    </li>
+    <li>
+      <b>No "Add Step" button anywhere.</b> Steps are produced exclusively by the Recording Session.
+      Manual Step creation is out of scope and adding the affordance would imply the Editor can
+      author screenshots, which it cannot. If the Recorder needs more Steps, they re-record.
+    </li>
+  </ul>
+</section>
+
+</body>
+</html>
