@@ -2,6 +2,15 @@
 
 Breakdown of [PRD #1](https://github.com/mahmoudalrahbi/guid-tool/issues/1) into tracer-bullet vertical slices. Published as GitHub issues on 2026-05-22.
 
+## Design artifacts
+
+| Surface | File | Informs slices |
+|---------|------|----------------|
+| Side Panel (Waiting, Recording Active, Paused) + Popup | [`LocalGuide.html`](LocalGuide.html) | 2, 4, 8 |
+| Editor | TBD — see slice 1 | 1, 5 |
+
+Key decisions extracted from the design are in [`docs/adr/0003-ui-design-decisions.md`](../adr/0003-ui-design-decisions.md).
+
 ## Slices
 
 | # | Issue | Title | Type | Blocked by | User stories |

@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LocalGuide — Side Panel & Popup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0A0A0A;
+    --bg-1: #0F0F0F;
+    --bg-2: #1A1A1A;
+    --bg-3: #242424;
+    --bg-4: #2E2E2E;
+    --line: #2A2A2A;
+    --line-soft: #1F1F1F;
+    --text-1: #ECECEC;
+    --text-2: #9A9A9A;
+    --text-3: #5E5E5E;
+    --text-4: #3F3F3F;
+    --amber: #F59E0B;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --amber-line: rgba(245, 158, 11, 0.32);
+    --red: #EF4444;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #131313 0%, transparent 60%),
+      var(--bg-0);
+    color: var(--text-1);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: 48px 56px 96px;
+  }
+
+  /* ---------- Page header ---------- */
+  .page-header {
+    max-width: 1760px;
+    margin: 0 auto 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  .brand-mark::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--amber);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
+  }
+  .brand h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand .sub {
+    color: var(--text-2);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .page-header .meta {
+    color: var(--text-3);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ---------- Canvas layout ---------- */
+  .canvas {
+    max-width: 1760px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 360px) 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  @media (max-width: 1600px) {
+    .canvas {
+      grid-template-columns: repeat(3, 360px);
+    }
+    .popup-cell { grid-column: 1 / -1; justify-self: start; }
+  }
+
+  .cell {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cell-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .cell-label .num {
+    color: var(--amber);
+  }
+  .cell-label .title {
+    color: var(--text-1);
+    letter-spacing: 0.02em;
+    text-transform: none;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+  .cell-label .note {
+    color: var(--text-3);
+  }
+
+  /* ---------- Side Panel frame ---------- */
+  .panel-frame {
+    width: 360px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset, 0 30px 60px -30px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+  }
+  /* Chrome tab strip on the side panel to ground it as a browser surface */
+  .chrome-strip {
+    height: 28px;
+    background: #050505;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .chrome-strip .dot {
+    width: 8px; height: 8px; border-radius: 999px;
+    background: #2A2A2A;
+  }
+  .chrome-strip .label {
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    height: 720px;
+  }
+
+  /* Panel header */
+  .panel-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .panel-header .left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .panel-header .name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .panel-header .sub {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 1px;
+  }
+  .ico-btn {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-2);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .ico-btn:hover {
+    background: var(--bg-3);
+    color: var(--text-1);
+  }
+  .ico-btn svg { display: block; }
+
+  /* Status row */
+  .status-row {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid var(--line-soft);
+    background:
+      linear-gradient(180deg, rgba(245,158,11,0.04), transparent);
+  }
+  .status-row.is-paused {
+    background: none;
+  }
+  .status-row.is-idle { background: none; }
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+    color: var(--text-1);
+    font-weight: 500;
+  }
+  .rec-dot {
+    width: 8px; height: 8px; border-radius: 999px;
+    background: var(--amber);
+    box-shadow: 0 0 0 0 rgba(245,158,11,0.5);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.55); }
+    50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+  }
+  .rec-dot.paused {
+    background: var(--text-3);
+    animation: none;
+    box-shadow: none;
+  }
+  .rec-dot.idle {
+    background: var(--text-4);
+    animation: none;
+    box-shadow: none;
+  }
+  .status .timer {
+    font-family: var(--font-mono);
+    color: var(--text-2);
+    font-size: 11px;
+    margin-left: 2px;
+  }
+  .status-row .counter {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .status-row .counter b {
+    color: var(--text-1);
+    font-weight: 500;
+  }
+
+  /* Step list */
+  .steps {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #2E2E2E transparent;
+  }
+  .steps::-webkit-scrollbar { width: 6px; }
+  .steps::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 999px; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 12px;
+    padding: 12px 16px;
+    position: relative;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .step:hover { background: rgba(255,255,255,0.015); }
+  .step + .step { border-top: 1px solid var(--line-soft); }
+
+  .step-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 18px;
+    text-align: right;
+    padding-top: 2px;
+  }
+  .step-num.latest {
+    color: var(--amber);
+  }
+
+  .step-body { min-width: 0; }
+  .step-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    background: #0D0D0D;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .step-thumb svg { display: block; width: 100%; height: 100%; }
+  .step-thumb.latest {
+    border-color: var(--amber-line);
+    box-shadow: 0 0 0 1px var(--amber-line);
+  }
+  .step-desc {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-1);
+    letter-spacing: -0.005em;
+  }
+  .step-desc .url {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .step .actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: none;
+    gap: 4px;
+  }
+  .step:hover .actions { display: flex; }
+  .step .actions .ico-btn {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: rgba(20,20,20,0.85);
+    border: 1px solid var(--line);
+  }
+
+  /* Empty state */
+  .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 28px;
+    text-align: center;
+    gap: 20px;
+  }
+  .empty .glyph {
+    width: 88px;
+    height: 88px;
+    border-radius: 14px;
+    border: 1px dashed var(--line);
+    display: grid;
+    place-items: center;
+    position: relative;
+    background: var(--bg-2);
+  }
+  .empty .glyph::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 8px, rgba(255,255,255,0.015) 8px 9px);
+    border-radius: 14px;
+    pointer-events: none;
+  }
+  .empty .cursor {
+    position: relative;
+    z-index: 1;
+  }
+  .empty h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .empty p {
+    margin: 0;
+    color: var(--text-2);
+    font-size: 12.5px;
+    line-height: 1.55;
+    max-width: 260px;
+  }
+  .empty .hint-list {
+    margin-top: 4px;
+    width: 100%;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+  .hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.4;
+  }
+  .hint .num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--amber);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .hint b { color: var(--text-1); font-weight: 500; }
+
+  /* Paused banner */
+  .paused-banner {
+    margin: 10px 16px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--bg-2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .paused-banner .pip {
+    width: 8px; height: 8px; border-radius: 2px;
+    background: var(--text-2);
+    flex-shrink: 0;
+  }
+  .paused-banner b { color: var(--text-1); font-weight: 500; }
+
+  /* Footer / controls */
+  .panel-footer {
+    border-top: 1px solid var(--line);
+    padding: 12px 14px;
+    display: flex;
+    gap: 8px;
+    background: var(--bg-1);
+  }
+  .panel-footer.idle {
+    flex-direction: column;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 80ms ease;
+    user-select: none;
+  }
+  .btn:active { transform: translateY(0.5px); }
+
+  .btn-primary {
+    background: var(--amber);
+    color: #1a1300;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: #FFB224; }
+
+  .btn-secondary {
+    background: var(--bg-3);
+    color: var(--text-1);
+    border-color: var(--line);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-4);
+    border-color: #383838;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border-color: var(--line);
+  }
+  .btn-ghost:hover { color: var(--text-1); border-color: #383838; }
+
+  .btn-full { flex: 1; }
+
+  /* ---------- Popup ---------- */
+  .popup-cell { width: 400px; }
+
+  .popup-frame {
+    width: 400px;
+    height: 500px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .popup-header {
+    padding: 16px 18px 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .popup-header .brand-block {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .popup-header .mark {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+  }
+  .popup-header .mark::after {
+    content: "";
+    width: 9px; height: 9px;
+    background: var(--amber);
+    border-radius: 999px;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.18);
+  }
+  .popup-header .name {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .popup-header .tag {
+    font-size: 11.5px;
+    color: var(--text-3);
+    margin-top: 1px;
+  }
+  .popup-header .stats {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    line-height: 1.5;
+  }
+  .popup-header .stats b {
+    color: var(--text-1);
+    font-weight: 500;
+  }
+
+  .popup-cta {
+    padding: 14px 18px 16px;
+  }
+  .start-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 9px;
+    background: var(--amber);
+    color: #1a1300;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 120ms ease, transform 80ms ease;
+    position: relative;
+  }
+  .start-btn:hover { background: #FFB224; }
+  .start-btn:active { transform: translateY(0.5px); }
+  .start-btn .kbd {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(26,19,0,0.55);
+    background: rgba(0,0,0,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .popup-section-head {
+    padding: 4px 18px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .popup-section-head .lbl {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .popup-section-head .all {
+    font-size: 11px;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .popup-section-head .all:hover { color: var(--text-1); }
+
+  .history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 12px;
+    scrollbar-width: thin;
+  }
+  .history::-webkit-scrollbar { width: 6px; }
+  .history::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 999px; }
+
+  .guide-row {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .guide-row:hover { background: var(--bg-2); }
+  .guide-row + .guide-row { margin-top: 2px; }
+  .guide-icon {
+    width: 36px; height: 36px;
+    border-radius: 7px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+  .guide-icon svg { display: block; }
+  .guide-title {
+    font-size: 13px;
+    color: var(--text-1);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .guide-meta {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .guide-meta .sep {
+    width: 2px; height: 2px; border-radius: 999px;
+    background: var(--text-4);
+  }
+  .guide-row .chev {
+    color: var(--text-4);
+    display: grid;
+    place-items: center;
+    transition: color 120ms ease, transform 120ms ease;
+  }
+  .guide-row:hover .chev { color: var(--text-2); transform: translateX(2px); }
+
+  .popup-footer {
+    border-top: 1px solid var(--line-soft);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .popup-footer .links {
+    display: flex; gap: 14px;
+  }
+  .popup-footer .links a {
+    color: var(--text-2);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .popup-footer .links a:hover { color: var(--text-1); }
+  .popup-footer .storage {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+  }
+
+  /* ---------- Design Description ---------- */
+  .description {
+    max-width: 920px;
+    margin: 96px auto 0;
+    padding: 40px 48px 48px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--bg-1);
+  }
+  .description h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .description .lede {
+    color: var(--text-2);
+    font-size: 14px;
+    margin: 0 0 32px;
+    max-width: 60ch;
+  }
+  .description h3 {
+    margin: 28px 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .description h3::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--amber);
+    border-radius: 2px;
+    margin-right: 10px;
+    transform: translateY(-1px);
+  }
+  .description p, .description li {
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .description p {
+    max-width: 64ch;
+    margin: 0 0 12px;
+  }
+  .description ul {
+    padding-left: 18px;
+    margin: 0 0 12px;
+  }
+  .description li { margin-bottom: 6px; }
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--bg-3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text-1);
+    border: 1px solid var(--line);
+  }
+  .description .grid-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 36px;
+  }
+  @media (max-width: 760px) {
+    .description { padding: 28px; }
+    .description .grid-two { grid-template-columns: 1fr; }
+    body { padding: 24px 16px 64px; }
+  }
+
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <h1>LocalGuide</h1>
+      <div class="sub">Chrome extension — Side Panel & Popup design</div>
+    </div>
+  </div>
+  <div class="meta">
+    surfaces · 4<br/>
+    side panel · 360 × 720<br/>
+    popup · 400 × 500
+  </div>
+</header>
+
+<section class="canvas">
+
+  <!-- =================== STATE 1: WAITING =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">01</span>
+      <span class="title">Side Panel · Waiting</span>
+      <span class="note">— Recording Session armed, no Steps yet</span>
+    </div>
+    <div class="panel-frame" data-screen-label="01 Side Panel Waiting">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <span class="label">CHROME · SIDE PANEL</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="left">
+            <div class="name">New Guide</div>
+            <div class="sub">Untitled · ready to capture</div>
+          </div>
+          <button class="ico-btn" title="Close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+          </button>
+        </div>
+
+        <div class="status-row is-idle">
+          <div class="status">
+            <span class="rec-dot idle"></span>
+            <span>Waiting for first click</span>
+          </div>
+          <div class="counter"><b>0</b> Steps</div>
+        </div>
+
+        <div class="empty">
+          <div class="glyph">
+            <svg class="cursor" width="34" height="34" viewBox="0 0 34 34" fill="none">
+              <path d="M8 6 L8 24 L13 19 L16.5 26.5 L19.5 25 L16 17.5 L23 17.5 Z"
+                    fill="#F59E0B" stroke="#0F0F0F" stroke-width="1.2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Click anything on the page</h3>
+            <p>Every click on the active tab becomes a Step — Annotated Screenshot plus an auto-written description.</p>
+          </div>
+          <div class="hint-list">
+            <div class="hint">
+              <span class="num">01</span>
+              <div>Switch to the tab you want to document, then <b>click your first element</b>.</div>
+            </div>
+            <div class="hint">
+              <span class="num">02</span>
+              <div>Pause anytime — <b>resume</b> when you're ready to keep going.</div>
+            </div>
+            <div class="hint">
+              <span class="num">03</span>
+              <div>Hit <b>Complete Capture</b> to open the Editor and export.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-footer idle">
+          <button class="btn btn-ghost btn-full" disabled style="opacity:.55; cursor:not-allowed;">
+            Complete Capture
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== STATE 2: ACTIVE =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">02</span>
+      <span class="title">Side Panel · Recording Active</span>
+      <span class="note">— 4 Steps captured, live</span>
+    </div>
+    <div class="panel-frame" data-screen-label="02 Side Panel Active">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <span class="label">CHROME · SIDE PANEL</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="left">
+            <div class="name">New Guide</div>
+            <div class="sub">app.acme.com · capturing</div>
+          </div>
+          <button class="ico-btn" title="Settings">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="7" cy="7" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="12" cy="7" r="1.5"/></svg>
+          </button>
+        </div>
+
+        <div class="status-row">
+          <div class="status">
+            <span class="rec-dot"></span>
+            <span>Recording</span>
+            <span class="timer">02:14</span>
+          </div>
+          <div class="counter"><b>4</b> Steps</div>
+        </div>
+
+        <div class="steps">
+
+          <article class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <!-- Stylized browser placeholder w/ click highlight -->
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="6" y="5" width="40" height="4" rx="1" fill="#2A2A2A"/>
+                  <rect x="6" y="22" width="80" height="6" rx="1" fill="#262626"/>
+                  <rect x="6" y="34" width="60" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="6" y="40" width="120" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="6" y="46" width="100" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="6" y="64" width="40" height="14" rx="2" fill="#262626"/>
+                  <circle cx="26" cy="71" r="11" fill="none" stroke="#F59E0B" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Click "Sign in" in the top right of the navigation bar.
+                <span class="url">app.acme.com/welcome</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="ico-btn" title="Edit"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 8.5V9.5h1L8.5 4 7.5 3z"/></svg></button>
+              <button class="ico-btn" title="Delete"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2.5 3h6M4.5 5v3M6.5 5v3M3 3l.5 6.5h4L8 3"/></svg></button>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="50" y="24" width="60" height="6" rx="1" fill="#262626"/>
+                  <rect x="40" y="38" width="80" height="10" rx="2" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="40" y="52" width="80" height="10" rx="2" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="40" y="70" width="80" height="12" rx="2" fill="#262626"/>
+                  <circle cx="80" cy="43" r="10" fill="none" stroke="#F59E0B" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Type your work email into the "Email address" field.
+                <span class="url">app.acme.com/login</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="6" y="22" width="40" height="60" rx="2" fill="#161616"/>
+                  <rect x="10" y="28" width="32" height="4" rx="1" fill="#262626"/>
+                  <rect x="10" y="36" width="28" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="42" width="24" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="48" width="30" height="3" rx="1" fill="#262626"/>
+                  <rect x="54" y="22" width="100" height="60" rx="2" fill="#161616"/>
+                  <rect x="60" y="30" width="60" height="6" rx="1" fill="#262626"/>
+                  <rect x="60" y="42" width="80" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="60" y="48" width="70" height="3" rx="1" fill="#1F1F1F"/>
+                  <circle cx="24" cy="49" r="10" fill="none" stroke="#F59E0B" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Open the "Workspace settings" item in the left sidebar.
+                <span class="url">app.acme.com/dashboard</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-num latest">04</div>
+            <div class="step-body">
+              <div class="step-thumb latest">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="6" y="22" width="148" height="20" rx="2" fill="#161616"/>
+                  <rect x="12" y="28" width="40" height="3" rx="1" fill="#262626"/>
+                  <rect x="12" y="34" width="60" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="6" y="48" width="148" height="20" rx="2" fill="#161616"/>
+                  <rect x="12" y="54" width="50" height="3" rx="1" fill="#262626"/>
+                  <rect x="12" y="60" width="40" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="110" y="74" width="44" height="14" rx="2" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="118" y="78" width="28" height="6" rx="1" fill="#2E2E2E"/>
+                  <circle cx="132" cy="81" r="12" fill="none" stroke="#F59E0B" stroke-width="1.8"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Click the "Invite member" button at the bottom of the Members panel.
+                <span class="url">app.acme.com/settings/members</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="panel-footer">
+          <button class="btn btn-secondary">
+            <svg width="11" height="12" viewBox="0 0 11 12" fill="currentColor"><rect x="2" y="2" width="2.5" height="8" rx="0.4"/><rect x="6.5" y="2" width="2.5" height="8" rx="0.4"/></svg>
+            Pause
+          </button>
+          <button class="btn btn-primary btn-full">
+            Complete Capture
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l2.2 2.2L9 4.4"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== STATE 3: PAUSED =================== -->
+  <div class="cell">
+    <div class="cell-label">
+      <span class="num">03</span>
+      <span class="title">Side Panel · Paused</span>
+      <span class="note">— capture suspended, Steps preserved</span>
+    </div>
+    <div class="panel-frame" data-screen-label="03 Side Panel Paused">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <span class="label">CHROME · SIDE PANEL</span>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="left">
+            <div class="name">New Guide</div>
+            <div class="sub">app.acme.com · paused</div>
+          </div>
+          <button class="ico-btn" title="Settings">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="7" cy="7" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="12" cy="7" r="1.5"/></svg>
+          </button>
+        </div>
+
+        <div class="status-row is-paused">
+          <div class="status">
+            <span class="rec-dot paused"></span>
+            <span style="color: var(--text-2);">Paused</span>
+            <span class="timer">02:14</span>
+          </div>
+          <div class="counter"><b>4</b> Steps</div>
+        </div>
+
+        <div class="paused-banner">
+          <span class="pip"></span>
+          <div><b>Clicks are being ignored.</b> Resume to keep capturing.</div>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="6" y="22" width="80" height="6" rx="1" fill="#262626"/>
+                  <rect x="6" y="34" width="60" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="6" y="40" width="120" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="6" y="64" width="40" height="14" rx="2" fill="#262626"/>
+                  <circle cx="26" cy="71" r="11" fill="none" stroke="#F59E0B" stroke-width="1.6" opacity=".8"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Click "Sign in" in the top right of the navigation bar.
+                <span class="url">app.acme.com/welcome</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="50" y="24" width="60" height="6" rx="1" fill="#262626"/>
+                  <rect x="40" y="38" width="80" height="10" rx="2" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="40" y="52" width="80" height="10" rx="2" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <rect x="40" y="70" width="80" height="12" rx="2" fill="#262626"/>
+                  <circle cx="80" cy="43" r="10" fill="none" stroke="#F59E0B" stroke-width="1.6" opacity=".8"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Type your work email into the "Email address" field.
+                <span class="url">app.acme.com/login</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="6" y="22" width="40" height="60" rx="2" fill="#161616"/>
+                  <rect x="10" y="28" width="32" height="4" rx="1" fill="#262626"/>
+                  <rect x="10" y="36" width="28" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="42" width="24" height="3" rx="1" fill="#1F1F1F"/>
+                  <rect x="10" y="48" width="30" height="3" rx="1" fill="#262626"/>
+                  <rect x="54" y="22" width="100" height="60" rx="2" fill="#161616"/>
+                  <rect x="60" y="30" width="60" height="6" rx="1" fill="#262626"/>
+                  <circle cx="24" cy="49" r="10" fill="none" stroke="#F59E0B" stroke-width="1.6" opacity=".8"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Open the "Workspace settings" item in the left sidebar.
+                <span class="url">app.acme.com/dashboard</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <div class="step-thumb">
+                <svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="100" fill="#101010"/>
+                  <rect y="0" width="160" height="14" fill="#1A1A1A"/>
+                  <rect x="6" y="22" width="148" height="20" rx="2" fill="#161616"/>
+                  <rect x="12" y="28" width="40" height="3" rx="1" fill="#262626"/>
+                  <rect x="6" y="48" width="148" height="20" rx="2" fill="#161616"/>
+                  <rect x="110" y="74" width="44" height="14" rx="2" fill="#1F1F1F" stroke="#2E2E2E"/>
+                  <circle cx="132" cy="81" r="12" fill="none" stroke="#F59E0B" stroke-width="1.6" opacity=".8"/>
+                </svg>
+              </div>
+              <div class="step-desc">
+                Click the "Invite member" button at the bottom of the Members panel.
+                <span class="url">app.acme.com/settings/members</span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="panel-footer">
+          <button class="btn btn-primary btn-full">
+            <svg width="11" height="12" viewBox="0 0 11 12" fill="currentColor"><path d="M3 2 L3 10 L9 6 Z"/></svg>
+            Resume Recording
+          </button>
+          <button class="btn btn-secondary">
+            Complete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== POPUP =================== -->
+  <div class="cell popup-cell">
+    <div class="cell-label">
+      <span class="num">04</span>
+      <span class="title">Popup · Entry Point</span>
+      <span class="note">— start a Recording Session, browse Guide History</span>
+    </div>
+    <div class="popup-frame" data-screen-label="04 Popup">
+      <div class="chrome-strip">
+        <span class="dot"></span>
+        <span class="label">CHROME · TOOLBAR POPUP</span>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column;">
+        <div class="popup-header">
+          <div class="brand-block">
+            <div class="mark"></div>
+            <div>
+              <div class="name">LocalGuide</div>
+              <div class="tag">Record · annotate · share — all local</div>
+            </div>
+          </div>
+          <div class="stats">
+            <b>12</b> Guides<br/>
+            <span>locally stored</span>
+          </div>
+        </div>
+
+        <div class="popup-cta">
+          <button class="start-btn">
+            <span style="display:inline-flex; align-items:center; gap:9px;">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="7" r="5"/></svg>
+              Start Recording
+            </span>
+            <span class="kbd">⌘⇧R</span>
+          </button>
+        </div>
+
+        <div class="popup-section-head">
+          <div class="lbl">Guide History</div>
+          <div class="all">View all →</div>
+        </div>
+
+        <div class="history">
+          <div class="guide-row">
+            <div class="guide-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+                <path d="M5 5.5h6M5 8h6M5 10.5h4"/>
+              </svg>
+            </div>
+            <div style="min-width:0;">
+              <div class="guide-title">How to invite a teammate to the workspace</div>
+              <div class="guide-meta"><span>8 Steps</span><span class="sep"></span><span>Today, 10:42</span></div>
+            </div>
+            <div class="chev">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3 L7.5 6 L4.5 9"/></svg>
+            </div>
+          </div>
+
+          <div class="guide-row">
+            <div class="guide-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+                <path d="M5 5.5h6M5 8h6M5 10.5h4"/>
+              </svg>
+            </div>
+            <div style="min-width:0;">
+              <div class="guide-title">Export billing report as CSV</div>
+              <div class="guide-meta"><span>5 Steps</span><span class="sep"></span><span>Yesterday</span></div>
+            </div>
+            <div class="chev">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3 L7.5 6 L4.5 9"/></svg>
+            </div>
+          </div>
+
+          <div class="guide-row">
+            <div class="guide-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+                <path d="M5 5.5h6M5 8h6M5 10.5h4"/>
+              </svg>
+            </div>
+            <div style="min-width:0;">
+              <div class="guide-title">Configure single sign-on with Okta</div>
+              <div class="guide-meta"><span>14 Steps</span><span class="sep"></span><span>May 18</span></div>
+            </div>
+            <div class="chev">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3 L7.5 6 L4.5 9"/></svg>
+            </div>
+          </div>
+
+          <div class="guide-row">
+            <div class="guide-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+                <path d="M5 5.5h6M5 8h6M5 10.5h4"/>
+              </svg>
+            </div>
+            <div style="min-width:0;">
+              <div class="guide-title">Set up a recurring weekly report</div>
+              <div class="guide-meta"><span>6 Steps</span><span class="sep"></span><span>May 17</span></div>
+            </div>
+            <div class="chev">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3 L7.5 6 L4.5 9"/></svg>
+            </div>
+          </div>
+
+          <div class="guide-row">
+            <div class="guide-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+                <path d="M5 5.5h6M5 8h6M5 10.5h4"/>
+              </svg>
+            </div>
+            <div style="min-width:0;">
+              <div class="guide-title">Reset a forgotten password</div>
+              <div class="guide-meta"><span>3 Steps</span><span class="sep"></span><span>May 15</span></div>
+            </div>
+            <div class="chev">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3 L7.5 6 L4.5 9"/></svg>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="popup-footer">
+          <div class="storage">2.4 MB · IndexedDB</div>
+          <div class="links">
+            <a>Import</a>
+            <a>Settings</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- =================== DESIGN DESCRIPTION =================== -->
+<section class="description">
+  <h2>Design Description</h2>
+  <p class="lede">
+    A dense, dark, no-chrome utility surface — built to live inside Chrome's 360-pixel side panel
+    without ever competing with the page the Recorder is actually documenting.
+  </p>
+
+  <h3>Visual Hierarchy</h3>
+  <p>
+    Each surface stacks three horizontal regions: a <b>persistent header</b> (what Guide is this?),
+    a <b>scrolling work area</b> (the Steps), and a <b>fixed footer</b> with the only two actions
+    that matter mid-session — Pause/Resume and Complete Capture. Anchoring Complete Capture to the
+    bottom means it never moves as Steps stream in.
+  </p>
+  <p>
+    Inside the work area, Steps follow a strict left-rail pattern: a monospace step number, then a
+    16:10 Annotated Screenshot, then the auto-generated description. The most recent Step is
+    promoted with an amber number and an amber-edged thumbnail — the Recorder always knows what
+    was just captured without scanning.
+  </p>
+
+  <div class="grid-two">
+    <div>
+      <h3>The Amber Accent</h3>
+      <p>
+        <code>#F59E0B</code> is treated as a <i>signal color</i>, not decoration. It appears in
+        exactly four roles:
+      </p>
+      <ul>
+        <li>The pulsing dot in the status row — the only thing in motion when Recording is active.</li>
+        <li>The highlight ring drawn on every Annotated Screenshot — the product's literal value proposition.</li>
+        <li>The primary CTA (<i>Complete Capture</i>, <i>Resume Recording</i>, <i>Start Recording</i>) — never two amber buttons in one surface.</li>
+        <li>The number and border of the latest Step, plus the Guide History chevron on hover.</li>
+      </ul>
+      <p>
+        Hold the line on this. The moment a secondary button or a meta label borrows amber, the
+        recording indicator stops reading as urgent.
+      </p>
+    </div>
+    <div>
+      <h3>360-Pixel Layout</h3>
+      <p>
+        At 360px, padding is the enemy. The side panel uses <b>16px horizontal gutters</b>, a
+        single column for Steps, and never two side-by-side controls in the footer unless the
+        primary is full-width. Step descriptions are 12.5px Inter — small enough to fit a
+        sentence-plus-URL per Step, large enough that the Recorder can sanity-check the auto-generated
+        copy without zooming.
+      </p>
+      <p>
+        The Annotated Screenshot is the densest pixel in the surface, so it earns the most width.
+        Step number, hover actions, and metadata orbit around it.
+      </p>
+    </div>
+  </div>
+
+  <h3>Implied Interaction Patterns</h3>
+  <ul>
+    <li><b>Recording dot</b> uses a CSS <code>@keyframes pulse</code> — a soft 1.6s amber ring breath. Stops cleanly when paused; the dot itself desaturates to neutral grey so the surface is unambiguous at a glance.</li>
+    <li><b>Step rows</b> reveal inline <i>Edit</i> and <i>Delete</i> affordances on hover — the Recorder can fix a wrong description or drop a misclicked Step without leaving the side panel.</li>
+    <li><b>Pause ⇄ Resume</b> swap the footer's primary slot. In Paused state, Resume becomes the amber CTA and Complete shrinks to secondary — the next obvious action is to resume, not to ship a half-finished Guide.</li>
+    <li><b>Guide History rows</b> shift their chevron 2px right on hover. Clicking opens the Guide in the Editor tab.</li>
+    <li><b>Empty state</b> uses an amber cursor glyph inside a dashed-border tile, then three numbered hints. The Complete Capture button is rendered but disabled — present, not absent, so the Recorder learns the shape of the workflow before producing their first Step.</li>
+  </ul>
+
+  <h3>Watch Out For (Implementation Notes)</h3>
+  <ul>
+    <li>
+      <b>Side panel width is not 360 everywhere.</b> Users can drag it wider. Build the layout
+      fluid — the Step thumbnail uses <code>aspect-ratio: 16/10</code> and the description uses
+      <code>min-width: 0</code> so long URLs truncate cleanly at any width. Don't hard-code 360.
+    </li>
+    <li>
+      <b>The Annotated Screenshot is a real PNG, not a placeholder.</b> The thumbnails in this
+      mock are stylized SVG stand-ins. In production, the highlight circle must be rendered by
+      drawing onto the captured image (Canvas) at capture time — never as a CSS overlay on top of
+      an <code>&lt;img&gt;</code>, because exported HTML/Markdown for the Reader won't carry
+      arbitrary CSS reliably.
+    </li>
+    <li>
+      <b>Auto-generated descriptions can be wrong or empty.</b> The hover-edit affordance is not
+      optional. Plan for a Step to land with description = <code>""</code> (e.g. click on an
+      element with no accessible name) — render a muted placeholder like "Describe this Step" so
+      the row is still tappable, never collapsed.
+    </li>
+    <li>
+      <b>Timer drift across pause/resume.</b> The status row shows <code>02:14</code> in both
+      Active and Paused states — store <code>activeMs</code>, not <code>startedAt</code>, and
+      freeze the value on pause. Otherwise a long pause silently inflates the displayed duration.
+    </li>
+    <li>
+      <b>IndexedDB quotas.</b> The popup footer shows <code>2.4 MB · IndexedDB</code> as a quiet
+      reassurance, but at ~50–150 KB per Step, a single 20-step Guide is non-trivial. Surface a
+      warning state (amber text in this slot) when total storage crosses ~80% of the quota — the
+      Recorder will silently lose Guides otherwise.
+    </li>
+    <li>
+      <b>Keyboard shortcut shown on the Start button (⌘⇧R)</b> implies a Chrome
+      <code>commands</code> binding in <code>manifest.json</code>. Chrome can refuse the binding
+      if another extension claimed it; render the kbd hint conditionally based on the resolved
+      shortcut, or hide it when unset.
+    </li>
+    <li>
+      <b>Side panel persistence.</b> A Recording Session must survive tab switches and the side
+      panel being closed and reopened — drive all rendering from the background service worker's
+      state, not from in-panel React state alone.
+    </li>
+    <li>
+      <b>Complete Capture in Paused state.</b> Kept accessible (as a secondary button) — Recorders
+      sometimes pause specifically because they're done. Don't make them resume just to finish.
+    </li>
+  </ul>
+</section>
+
+</body>
+</html>
