@@ -22,8 +22,7 @@ ARG AGENT_UID=1000
 ARG AGENT_GID=1000
 
 # Rename the base image's "node" user to "agent" and align UID/GID.
-RUN groupmod -g $AGENT_GID node 2>/dev/null || groupmod -g $AGENT_GID dialout 2>/dev/null || true \
-    && usermod -u $AGENT_UID -g $AGENT_GID -d /home/agent -m -l agent node
+RUN groupmod -o -g $AGENT_GID node && usermod -o -u $AGENT_UID -g $AGENT_GID -d /home/agent -m -l agent node
 USER ${AGENT_UID}:${AGENT_GID}
 
 # Install Claude Code CLI
