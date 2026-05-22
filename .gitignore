@@ -1,3 +1,6 @@
 node_modules/
 coverage/
 .claude/
+.sandcastle/.env
+.env
+.pnpm-store/
