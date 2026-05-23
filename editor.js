@@ -1,4 +1,5 @@
 import { getGuide, getStepsForGuide, saveGuide, saveStep, deleteStep } from "./db.js";
+import { getExportFormats, exportGuide } from "./exports/registry.js";
 
 const params = new URLSearchParams(location.search);
 const guideId = params.get("guideId");
@@ -8,7 +9,7 @@ const app = document.getElementById("app");
 const guideTitleInput = document.getElementById("guideTitleInput");
 const guideDescInput = document.getElementById("guideDescInput");
 const stepsContainer = document.getElementById("stepsContainer");
-const exportBtn = document.getElementById("exportBtn");
+const exportActions = document.getElementById("exportActions");
 const saveStatus = document.getElementById("saveStatus");
 
 let currentGuide = null;
@@ -52,7 +53,16 @@ async function init() {
 
   renderSteps();
 
-  exportBtn.addEventListener("click", () => exportHTML());
+  const formats = getExportFormats();
+  exportActions.innerHTML = "";
+  formats.forEach(format => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-primary";
+    btn.textContent = format.name;
+    btn.style.marginLeft = "12px";
+    btn.addEventListener("click", () => exportGuide(format.id, currentGuide, currentSteps));
+    exportActions.appendChild(btn);
+  });
 }
 
 function renderSteps() {
@@ -217,66 +227,6 @@ async function saveAll() {
   await saveGuide(currentGuide);
   await Promise.all(currentSteps.map(step => saveStep(step)));
   setSavingStatus("saved");
-}
-
-async function exportHTML() {
-  const stepsWithDataUrls = await Promise.all(
-    currentSteps.map(async (step) => {
-      const dataUrl = await blobToDataUrl(step.screenshotBlob);
-      return { ...step, dataUrl };
-    })
-  );
-
-  const stepsHtml = stepsWithDataUrls
-    .map(
-      (step) => `
-    <div class="step">
-      <div class="step-num">Step ${step.order}</div>
-      <img src="${step.dataUrl}" alt="Step ${step.order}" />
-      <p>${escapeHtml(step.description)}</p>
-    </div>`
-    )
-    .join("\n");
-
-  const guideDescHtml = currentGuide.description ? `<p class="guide-desc">${escapeHtml(currentGuide.description)}</p>` : "";
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${escapeHtml(currentGuide.title)}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 24px; color: #111; }
-    h1 { font-size: 26px; margin-bottom: 8px; }
-    .guide-desc { font-size: 16px; color: #4b5563; margin-bottom: 32px; }
-    .step { display: flex; gap: 16px; align-items: flex-start; padding: 24px 0; border-bottom: 1px solid #e5e7eb; }
-    .step-num { font-size: 12px; font-weight: 600; color: #fff; background: #3b82f6; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 12px; flex-shrink: 0; }
-    .step img { width: 260px; border-radius: 6px; flex-shrink: 0; border: 1px solid #e5e7eb; }
-    .step p { margin: 0; color: #374151; font-size: 15px; line-height: 1.5; }
-  </style>
-</head>
-<body>
-  <h1>${escapeHtml(currentGuide.title)}</h1>
-  ${guideDescHtml}
-  ${stepsHtml}
-</body>
-</html>`;
-
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${currentGuide.title.replace(/\s+/g, "-")}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
 }
 
 function escapeHtml(str) {
