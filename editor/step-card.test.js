@@ -32,7 +32,8 @@ global.document = {
 
 // Mock URL and escapeHtml
 global.URL = { createObjectURL: () => 'blob:url' };
-global.escapeHtml = (str) => str || '';
+global.window = { escapeHtml: (str) => str || '' };
+global.escapeHtml = global.window.escapeHtml;
 
 test('createStepElement: builds card and binds events', async () => {
   const { createStepElement } = await import('./step-card.js');

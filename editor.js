@@ -5,6 +5,7 @@ import { showToast } from "./editor/toast.js";
 import { setupExportMenu } from "./editor/export-menu.js";
 import { createStepElement, renumber, autoSize } from "./editor/step-card.js";
 import { attachDragAndDrop } from "./editor/drag-drop.js";
+import { createAutoSave } from "./editor/auto-save.js";
 
 const params = new URLSearchParams(location.search);
 const guideId = params.get("guideId");
@@ -22,7 +23,7 @@ const toastHost = document.getElementById("toastHost");
 
 let currentGuide = null;
 let currentSteps = [];
-let saveTimeout = null;
+let scheduleSave = null;
 
 async function init() {
   if (!guideId) return;
@@ -37,13 +38,33 @@ async function init() {
   currentGuide = guide;
   currentSteps = steps;
 
+  scheduleSave = createAutoSave(
+    async () => {
+      currentGuide.updatedAt = Date.now();
+      await saveGuide(currentGuide);
+      await Promise.all(currentSteps.map(step => saveStep(step)));
+    },
+    {
+      debounceMs: CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS,
+      onSaving: () => {
+        saveStatus.classList.add('saving');
+      },
+      onSaved: (success) => {
+        if (success) {
+          saveStatus.classList.remove('saving');
+          saveWhen.textContent = `· ${window.formatDate(Date.now())}`;
+        }
+      }
+    }
+  );
+
   titleInput.value = guide.title || "";
   descInput.value = guide.description || "";
   
   autoSize(descInput);
   
   // Setup Meta Chips
-  const dateStr = `Recorded ${formatDate(guide.createdAt || Date.now())}`;
+  const dateStr = `Recorded ${window.formatDate(guide.createdAt || Date.now())}`;
   
   const dateChip = document.getElementById("guideDateChip");
   if (dateChip) dateChip.querySelector("span").textContent = dateStr;
@@ -61,13 +82,13 @@ async function init() {
 
   titleInput.addEventListener("input", () => {
     currentGuide.title = titleInput.value;
-    flashSaving();
+    scheduleSave();
   });
 
   descInput.addEventListener("input", () => {
     currentGuide.description = descInput.value;
     autoSize(descInput);
-    flashSaving();
+    scheduleSave();
   });
 
   setupExportMenu(exportMenu, exportDropdown, exportBtn, getExportFormats(), (formatId) => {
@@ -84,7 +105,7 @@ function renderSteps() {
   currentSteps.forEach((step, index) => {
     step.order = index + 1;
     const card = createStepElement(step, {
-      onDescChange: flashSaving,
+      onDescChange: scheduleSave,
       onDelete: (cardEl) => handleDeleteStep(cardEl, step)
     });
     stepsList.appendChild(card);
@@ -106,7 +127,7 @@ function renderSteps() {
 function handleDeleteStep(card, step) {
   const parent = card.parentNode;
   const gap = card.nextElementSibling?.classList.contains('insert-gap') ? card.nextElementSibling : null;
-  const placeholderNext = card.nextElementSibling;
+  const placeholderNext = gap ? gap.nextElementSibling : card.nextElementSibling;
   
   card.remove();
   if (gap) gap.remove();
@@ -145,23 +166,7 @@ function syncOrderAndSave() {
   deletedSteps.forEach(s => deleteStep(s.id));
   
   currentSteps = newStepsOrder;
-  flashSaving();
-}
-
-function flashSaving() {
-  saveStatus.classList.add('saving');
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveAll, CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS);
-}
-
-async function saveAll() {
-  currentGuide.updatedAt = Date.now();
-  await saveGuide(currentGuide);
-  await Promise.all(currentSteps.map(step => saveStep(step)));
-  
-  saveStatus.classList.remove('saving');
-  
-  saveWhen.textContent = `· ${formatDate(Date.now())}`;
+  if (scheduleSave) scheduleSave();
 }
 
 init();

@@ -23,12 +23,12 @@ export function createStepElement(step, { onDescChange, onDelete }) {
         </div>
       </div>
       <div class="step-desc-wrap">
-        <textarea class="step-desc" rows="2" placeholder="Describe this step...">${escapeHtml(step.description)}</textarea>
+        <textarea class="step-desc" rows="2" placeholder="Describe this step...">${window.escapeHtml(step.description)}</textarea>
       </div>
       <div class="step-foot">
         <span class="step-url">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5L6.5 4.5M3 5l-1 1a2 2 0 1 0 2.8 2.8l1-1M8 6l1-1a2 2 0 1 0-2.8-2.8L5 3"/></svg>
-          ${escapeHtml((step.url || "Local file").replace(/^https?:\/\//, ''))}
+          ${window.escapeHtml((step.url || "Local file").replace(/^https?:\/\//, ''))}
         </span>
       </div>
     </div>
