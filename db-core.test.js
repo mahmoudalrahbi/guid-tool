@@ -1,4 +1,4 @@
-const { test, beforeEach } = require('node:test');
+const { test, beforeEach, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { IDBFactory } = require('fake-indexeddb');
 require('fake-indexeddb/auto');
@@ -6,9 +6,10 @@ require('fake-indexeddb/auto');
 global.CONFIG = require('./config.js');
 const dbCore = require('./db-core.js');
 
-beforeEach(() => {
-  global.indexedDB = new IDBFactory();
-});
+describe('db-core', { concurrency: false }, () => {
+  beforeEach(() => {
+    global.indexedDB = new IDBFactory();
+  });
 
 test('saves and retrieves a guide', async () => {
   const guide = {
@@ -71,4 +72,40 @@ test('deletes a guide and its associated steps', async () => {
   
   const retrievedSteps = await dbCore.getStepsForGuide('g-6');
   assert.equal(retrievedSteps.length, 0);
+});
+
+test('getAllGuidesWithStepCounts returns correct step count and lastActivityAt, sorted newest-first', async () => {
+  const guide1 = { id: 'g-7', title: 'Guide 7', createdAt: 1000 };
+  const guide2 = { id: 'g-8', title: 'Guide 8', createdAt: 2000, updatedAt: 4000 };
+  const guide3 = { id: 'g-9', title: 'Guide 9', createdAt: 3000 }; // lastActivityAt = 3000
+  
+  await dbCore.saveGuide(guide1);
+  await dbCore.saveGuide(guide2);
+  await dbCore.saveGuide(guide3);
+  
+  // Add 1 step to guide1
+  await dbCore.saveStep({ id: 's-5', guideId: 'g-7', order: 1, text: 'step' });
+  // Add 2 steps to guide2
+  await dbCore.saveStep({ id: 's-6', guideId: 'g-8', order: 1, text: 'step' });
+  await dbCore.saveStep({ id: 's-7', guideId: 'g-8', order: 2, text: 'step' });
+  // Guide 3 has 0 steps
+
+  const results = await dbCore.getAllGuidesWithStepCounts();
+  
+  assert.equal(results.length, 3);
+  
+  // Expected order by lastActivityAt descending: guide2 (4000), guide3 (3000), guide1 (1000)
+  assert.equal(results[0].id, 'g-8');
+  assert.equal(results[0].stepCount, 2);
+  assert.equal(results[0].lastActivityAt, 4000);
+  assert.equal(results[0].title, 'Guide 8');
+  
+  assert.equal(results[1].id, 'g-9');
+  assert.equal(results[1].stepCount, 0);
+  assert.equal(results[1].lastActivityAt, 3000);
+  
+  assert.equal(results[2].id, 'g-7');
+  assert.equal(results[2].stepCount, 1);
+  assert.equal(results[2].lastActivityAt, 1000);
+});
 });

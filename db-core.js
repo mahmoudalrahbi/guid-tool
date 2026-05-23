@@ -102,8 +102,42 @@ async function deleteGuide(guideId) {
   });
 }
 
+async function getAllGuidesWithStepCounts() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([CONFIG.STORE_GUIDES, CONFIG.STORE_STEPS], "readonly");
+    
+    const guidesReq = tx.objectStore(CONFIG.STORE_GUIDES).getAll();
+    guidesReq.onsuccess = () => {
+      const guides = guidesReq.result;
+      
+      const stepsReq = tx.objectStore(CONFIG.STORE_STEPS).getAll();
+      stepsReq.onsuccess = () => {
+        const steps = stepsReq.result;
+        const stepCounts = {};
+        for (let i = 0; i < steps.length; i++) {
+          const gId = steps[i].guideId;
+          stepCounts[gId] = (stepCounts[gId] || 0) + 1;
+        }
+        
+        const results = guides.map(g => ({
+          id: g.id,
+          title: g.title,
+          lastActivityAt: g.updatedAt ?? g.createdAt ?? 0,
+          stepCount: stepCounts[g.id] || 0
+        }));
+        
+        results.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+        resolve(results);
+      };
+      stepsReq.onerror = () => reject(stepsReq.error);
+    };
+    guidesReq.onerror = () => reject(guidesReq.error);
+  });
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    openDB, saveGuide, getGuide, saveStep, getStepsForGuide, deleteStep, getAllGuides, deleteGuide
+    openDB, saveGuide, getGuide, saveStep, getStepsForGuide, deleteStep, getAllGuides, deleteGuide, getAllGuidesWithStepCounts
   };
 }

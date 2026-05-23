@@ -1,7 +1,7 @@
-const { openDB, saveGuide, getGuide, saveStep, getStepsForGuide, deleteStep, getAllGuides, deleteGuide } = window;
+const { openDB, saveGuide, getGuide, saveStep, getStepsForGuide, deleteStep, getAllGuides, deleteGuide, getAllGuidesWithStepCounts } = window;
 
-if (!saveGuide) {
-  throw new Error("db-core.js is required but missing. Ensure it is loaded before db.js.");
+if (!saveGuide || !getAllGuidesWithStepCounts) {
+  throw new Error("db-core.js is required but missing or outdated. Reload the extension.");
 }
 
-export { openDB, saveGuide, getGuide, saveStep, getStepsForGuide, deleteStep, getAllGuides, deleteGuide };
+export { openDB, saveGuide, getGuide, saveStep, getStepsForGuide, deleteStep, getAllGuides, deleteGuide, getAllGuidesWithStepCounts };

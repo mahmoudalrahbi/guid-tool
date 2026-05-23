@@ -1,4 +1,4 @@
-import { getAllGuides, getStepsForGuide, deleteGuide } from "./db.js";
+import { getAllGuidesWithStepCounts, deleteGuide } from "./db.js";
 
 const startBtn = document.getElementById("startBtn");
 const startBtnText = document.getElementById("startBtnText");
@@ -38,7 +38,7 @@ async function calculateStorage() {
 }
 
 async function renderHistory() {
-  const guides = await getAllGuides();
+  const guides = await getAllGuidesWithStepCounts();
   historyList.innerHTML = "";
   guideCountEl.textContent = guides.length;
   
@@ -48,15 +48,11 @@ async function renderHistory() {
   }
   
   emptyHistory.style.display = "none";
-  
-  // Sort newest first
-  guides.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
 
   for (const guide of guides) {
-    const steps = await getStepsForGuide(guide.id);
-    const stepCount = steps.length;
+    const stepCount = guide.stepCount;
     
-    const dateStr = formatDate(guide.updatedAt || guide.createdAt);
+    const dateStr = formatDate(guide.lastActivityAt);
 
     const item = document.createElement("div");
     item.className = "guide-row";
@@ -69,7 +65,7 @@ async function renderHistory() {
         </svg>
       </div>
       <div style="min-width:0;">
-        <div class="guide-title" title="${escapeHtml(guide.title)}">${escapeHtml(guide.title || "Untitled Guide")}</div>
+        <div class="guide-title" title="${escapeHtml(guide.title || 'Untitled Guide')}">${escapeHtml(guide.title || "Untitled Guide")}</div>
         <div class="guide-meta"><span>${stepCount} Step${stepCount !== 1 ? 's' : ''}</span><span class="sep"></span><span>${dateStr}</span></div>
       </div>
       <div class="chev">
@@ -93,8 +89,8 @@ async function renderHistory() {
       e.stopPropagation();
       if (confirm(`Delete "${guide.title || "Untitled Guide"}" and all its steps?`)) {
         await deleteGuide(guide.id);
-        renderHistory();
-        calculateStorage();
+        await renderHistory();
+        await calculateStorage();
       }
     });
 
