@@ -120,7 +120,7 @@ async function handleClickCaptured(metadata) {
   }
 
   // Draw highlight circle over click coordinates using OffscreenCanvas
-  const annotated = await annotateScreenshot(screenshotDataUrl, metadata.x, metadata.y, metadata.dpr);
+  const annotated = await annotate(screenshotDataUrl, metadata.x, metadata.y, metadata.dpr);
 
   // Convert data URL → Blob for compact IndexedDB storage
   const blob = dataUrlToBlob(annotated);
