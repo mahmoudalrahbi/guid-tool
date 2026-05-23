@@ -60,6 +60,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         description: `Navigated to ${newUrl}`,
         screenshotBlob: blob,
         createdAt: Date.now(),
+        url: newUrl,
       };
 
       await saveStep(step);
@@ -132,6 +133,7 @@ async function handleClickCaptured(metadata) {
     description: ruleBasedDescription(metadata),
     screenshotBlob: blob,
     createdAt: Date.now(),
+    url: session.lastUrl,
   };
 
   await saveStep(step);
