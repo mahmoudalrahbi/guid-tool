@@ -5,13 +5,13 @@ let recording = false;
 let paused = false;
 
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "RECORDING_STARTED") {
+  if (msg.type === MSG_RECORDING_STARTED) {
     recording = true;
     paused = msg.paused || false;
   }
-  if (msg.type === "RECORDING_STOPPED") recording = false;
-  if (msg.type === "RECORDING_PAUSED") paused = true;
-  if (msg.type === "RECORDING_RESUMED") paused = false;
+  if (msg.type === MSG_RECORDING_STOPPED) recording = false;
+  if (msg.type === MSG_RECORDING_PAUSED) paused = true;
+  if (msg.type === MSG_RECORDING_RESUMED) paused = false;
 });
 
 document.addEventListener("click", (e) => {
@@ -28,5 +28,5 @@ document.addEventListener("click", (e) => {
     dpr: window.devicePixelRatio || 1,
   };
 
-  chrome.runtime.sendMessage({ type: "CLICK_CAPTURED", metadata });
+  chrome.runtime.sendMessage({ type: MSG_CLICK_CAPTURED, metadata });
 }, true);

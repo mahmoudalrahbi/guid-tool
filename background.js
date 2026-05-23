@@ -1,26 +1,26 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("db-core.js", "utils.js");
+importScripts("messages.js", "db-core.js", "utils.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === "START_RECORDING") {
+  if (msg.type === MSG_START_RECORDING) {
     handleStartRecording(msg.tabId).then(sendResponse);
     return true;
   }
-  if (msg.type === "CLICK_CAPTURED") {
+  if (msg.type === MSG_CLICK_CAPTURED) {
     handleClickCaptured(msg.metadata);
     return false;
   }
-  if (msg.type === "COMPLETE_CAPTURE") {
+  if (msg.type === MSG_COMPLETE_CAPTURE) {
     handleCompleteCapture().then(sendResponse);
     return true;
   }
-  if (msg.type === "PAUSE_RECORDING") {
+  if (msg.type === MSG_PAUSE_RECORDING) {
     handlePauseRecording().then(sendResponse);
     return true;
   }
-  if (msg.type === "RESUME_RECORDING") {
+  if (msg.type === MSG_RESUME_RECORDING) {
     handleResumeRecording().then(sendResponse);
     return true;
   }
@@ -31,7 +31,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (!session?.active || session.tabId !== tabId) return;
 
   if (changeInfo.status === "complete") {
-    await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED", paused: session.paused }).catch(() => {});
+    await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: session.paused }).catch(() => {});
   }
 
   if (session.paused) return;
@@ -66,7 +66,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       await saveStep(step);
       await chrome.storage.local.set({ session: { ...currentSession, stepCount } });
 
-      chrome.runtime.sendMessage({ type: "STEP_ADDED", step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
+      chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
     }, 500);
   }
 });
@@ -86,7 +86,7 @@ async function handleStartRecording(tabId) {
   await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now(), url: tab.url });
 
   // Tell content script on that tab to start listening
-  await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED", paused: false }).catch(() => {});
+  await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: false }).catch(() => {});
 
   return { ok: true };
 }
@@ -95,7 +95,7 @@ async function handlePauseRecording() {
   const { session } = await chrome.storage.local.get("session");
   if (!session?.active) return { ok: false };
   await chrome.storage.local.set({ session: { ...session, paused: true } });
-  await chrome.tabs.sendMessage(session.tabId, { type: "RECORDING_PAUSED" }).catch(() => {});
+  await chrome.tabs.sendMessage(session.tabId, { type: MSG_RECORDING_PAUSED }).catch(() => {});
   return { ok: true };
 }
 
@@ -103,7 +103,7 @@ async function handleResumeRecording() {
   const { session } = await chrome.storage.local.get("session");
   if (!session?.active) return { ok: false };
   await chrome.storage.local.set({ session: { ...session, paused: false } });
-  await chrome.tabs.sendMessage(session.tabId, { type: "RECORDING_RESUMED" }).catch(() => {});
+  await chrome.tabs.sendMessage(session.tabId, { type: MSG_RECORDING_RESUMED }).catch(() => {});
   return { ok: true };
 }
 
@@ -140,7 +140,7 @@ async function handleClickCaptured(metadata) {
   await chrome.storage.local.set({ session: { ...session, stepCount } });
 
   // Notify side panel
-  chrome.runtime.sendMessage({ type: "STEP_ADDED", step: { ...step, screenshotBlob: undefined, screenshotDataUrl: annotated } }).catch(() => {});
+  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl: annotated } }).catch(() => {});
 }
 
 async function handleCompleteCapture() {
@@ -150,7 +150,7 @@ async function handleCompleteCapture() {
   await chrome.storage.local.set({ session: { ...session, active: false } });
 
   // Tell content script to stop
-  await chrome.tabs.sendMessage(session.tabId, { type: "RECORDING_STOPPED" }).catch(() => {});
+  await chrome.tabs.sendMessage(session.tabId, { type: MSG_RECORDING_STOPPED }).catch(() => {});
 
   // Open Editor in new tab
   const editorUrl = chrome.runtime.getURL(`editor.html?guideId=${session.guideId}`);

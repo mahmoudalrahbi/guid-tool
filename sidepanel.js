@@ -66,16 +66,16 @@ function setRecordingUI() {
 
 pauseBtn.addEventListener("click", () => {
   setPausedUI();
-  chrome.runtime.sendMessage({ type: "PAUSE_RECORDING" });
+  chrome.runtime.sendMessage({ type: MSG_PAUSE_RECORDING });
 });
 
 resumeBtn.addEventListener("click", () => {
   setRecordingUI();
-  chrome.runtime.sendMessage({ type: "RESUME_RECORDING" });
+  chrome.runtime.sendMessage({ type: MSG_RESUME_RECORDING });
 });
 
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "STEP_ADDED") {
+  if (msg.type === MSG_STEP_ADDED) {
     addStepToList(msg.step);
   }
 });
@@ -83,7 +83,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 completeBtn.addEventListener("click", () => {
   completeBtn.disabled = true;
   completeBtn.innerHTML = "Finishing…";
-  chrome.runtime.sendMessage({ type: "COMPLETE_CAPTURE" });
+  chrome.runtime.sendMessage({ type: MSG_COMPLETE_CAPTURE });
 });
 
 function addStepToList(step) {

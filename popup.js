@@ -13,7 +13,7 @@ startBtn.addEventListener("click", async () => {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  chrome.runtime.sendMessage({ type: "START_RECORDING", tabId: tab.id }, (res) => {
+  chrome.runtime.sendMessage({ type: MSG_START_RECORDING, tabId: tab.id }, (res) => {
     if (res?.ok) {
       window.close();
     } else {
