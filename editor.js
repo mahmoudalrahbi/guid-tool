@@ -36,6 +36,26 @@ async function init() {
   descInput.value = guide.description || "";
   
   autoSize(descInput);
+  
+  // Setup Meta Chips
+  const dateObj = new Date(guide.createdAt || Date.now());
+  const timeStr = dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const isToday = new Date().toDateString() === dateObj.toDateString();
+  const dateStr = isToday ? \`Recorded today · \${timeStr}\` : \`Recorded \${dateObj.toLocaleDateString()} · \${timeStr}\`;
+  
+  const dateChip = document.getElementById("guideDateChip");
+  if (dateChip) dateChip.querySelector("span").textContent = dateStr;
+
+  if (guide.url) {
+    try {
+      const urlObj = new URL(guide.url);
+      const domainChip = document.getElementById("guideDomainChip");
+      if (domainChip) {
+        domainChip.style.display = "inline-flex";
+        domainChip.querySelector("span").textContent = urlObj.hostname;
+      }
+    } catch (e) {}
+  }
 
   titleInput.addEventListener("input", () => {
     currentGuide.title = titleInput.value;

@@ -82,7 +82,7 @@ async function handleStartRecording(tabId) {
     session: { guideId, tabId, stepCount: 0, active: true, lastUrl: tab.url, paused: false },
   });
 
-  await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now() });
+  await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now(), url: tab.url });
 
   // Tell content script on that tab to start listening
   await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED", paused: false }).catch(() => {});
