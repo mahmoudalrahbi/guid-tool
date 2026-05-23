@@ -1,4 +1,4 @@
-const test = require('node:test');
+const { test, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 // Mock DOM
@@ -29,6 +29,10 @@ global.document = {
   }
 };
 
+afterEach(() => {
+  mockDocumentListeners.length = 0;
+});
+
 function createMockElement() {
   const el = global.document.createElement('div');
   el.classList = {
@@ -38,7 +42,13 @@ function createMockElement() {
     toggle: function(c) { if (this.classes.has(c)) this.classes.delete(c); else this.classes.add(c); },
     contains: function(c) { return this.classes.has(c); }
   };
-  el.contains = function(other) { return this === other; };
+  el.contains = function(other) { 
+    if (this === other) return true;
+    for (const child of this.children) {
+      if (child.contains && child.contains(other)) return true;
+    }
+    return false;
+  };
   return el;
 }
 
@@ -71,4 +81,39 @@ test('setupExportMenu: renders formats and handles export clicks', async () => {
   exportMenu.children[0].dispatchEvent('click');
   assert.equal(exportedFormat, 'html');
   assert.ok(!exportDropdown.classList.contains('open'));
+});
+
+test('setupExportMenu: document click closes dropdown', async () => {
+  const { setupExportMenu } = await import('./export-menu.js');
+  
+  const exportMenu = createMockElement();
+  const exportDropdown = createMockElement();
+  const exportBtn = createMockElement();
+  exportDropdown.appendChild(exportMenu);
+  
+  setupExportMenu(exportMenu, exportDropdown, exportBtn, [], () => {});
+  
+  exportDropdown.classList.add('open');
+  
+  const outsideEl = createMockElement();
+  global.document.dispatchEvent('click', { target: outsideEl });
+  
+  assert.ok(!exportDropdown.classList.contains('open'));
+});
+
+test('setupExportMenu: click inside dropdown does not close it', async () => {
+  const { setupExportMenu } = await import('./export-menu.js');
+  
+  const exportMenu = createMockElement();
+  const exportDropdown = createMockElement();
+  const exportBtn = createMockElement();
+  exportDropdown.appendChild(exportMenu);
+  
+  setupExportMenu(exportMenu, exportDropdown, exportBtn, [], () => {});
+  
+  exportDropdown.classList.add('open');
+  
+  global.document.dispatchEvent('click', { target: exportMenu });
+  
+  assert.ok(exportDropdown.classList.contains('open'));
 });
