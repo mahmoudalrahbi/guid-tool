@@ -18,18 +18,61 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  const { session } = await chrome.storage.local.get("session");
+  if (!session?.active || session.tabId !== tabId) return;
+
+  if (changeInfo.status === "complete") {
+    await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED" }).catch(() => {});
+  }
+
+  if (tab.status === "complete" && tab.url !== session.lastUrl && !tab.url.startsWith("chrome://")) {
+    const newUrl = tab.url;
+    await chrome.storage.local.set({ session: { ...session, lastUrl: newUrl } });
+
+    setTimeout(async () => {
+      const { session: currentSession } = await chrome.storage.local.get("session");
+      if (!currentSession?.active) return;
+
+      let screenshotDataUrl;
+      try {
+        screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: "jpeg", quality: 80 });
+      } catch {
+        return; // Tab not capturable
+      }
+
+      const blob = dataUrlToBlob(screenshotDataUrl);
+      const stepCount = currentSession.stepCount + 1;
+      const step = {
+        id: `step-${currentSession.guideId}-${stepCount}`,
+        guideId: currentSession.guideId,
+        order: stepCount,
+        description: `Navigated to ${newUrl}`,
+        screenshotBlob: blob,
+        createdAt: Date.now(),
+      };
+
+      await saveStep(step);
+      await chrome.storage.local.set({ session: { ...currentSession, stepCount } });
+
+      chrome.runtime.sendMessage({ type: "STEP_ADDED", step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
+    }, 500);
+  }
+});
+
 async function handleStartRecording(tabId) {
+  // MUST open the side panel immediately to preserve the user gesture token!
+  await chrome.sidePanel.open({ tabId });
+  await chrome.sidePanel.setOptions({ tabId, path: "sidepanel.html", enabled: true });
+
   const guideId = `guide-${Date.now()}`;
+  const tab = await chrome.tabs.get(tabId);
 
   await chrome.storage.local.set({
-    session: { guideId, tabId, stepCount: 0, active: true },
+    session: { guideId, tabId, stepCount: 0, active: true, lastUrl: tab.url },
   });
 
   await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now() });
-
-  // Open side panel on the active tab
-  await chrome.sidePanel.open({ tabId });
-  await chrome.sidePanel.setOptions({ tabId, path: "sidepanel.html", enabled: true });
 
   // Tell content script on that tab to start listening
   await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED" }).catch(() => {});
