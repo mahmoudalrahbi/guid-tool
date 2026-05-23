@@ -1,7 +1,7 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("db-sw.js");
+importScripts("db-sw.js", "utils.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "START_RECORDING") {
@@ -187,21 +187,4 @@ function ruleBasedDescription(meta) {
   const label = meta.label || meta.text || meta.tag;
   const role = meta.role ? ` (${meta.role})` : "";
   return `Click "${label}"${role}`;
-}
-
-function dataUrlToBlob(dataUrl) {
-  const [header, data] = dataUrl.split(",");
-  const mime = header.match(/:(.*?);/)[1];
-  const bytes = atob(data);
-  const arr = new Uint8Array(bytes.length);
-  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-  return new Blob([arr], { type: mime });
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
 }

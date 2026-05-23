@@ -38,10 +38,7 @@ async function init() {
   autoSize(descInput);
   
   // Setup Meta Chips
-  const dateObj = new Date(guide.createdAt || Date.now());
-  const timeStr = dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  const isToday = new Date().toDateString() === dateObj.toDateString();
-  const dateStr = isToday ? `Recorded today · ${timeStr}` : `Recorded ${dateObj.toLocaleDateString()} · ${timeStr}`;
+  const dateStr = `Recorded ${formatDate(guide.createdAt || Date.now())}`;
   
   const dateChip = document.getElementById("guideDateChip");
   if (dateChip) dateChip.querySelector("span").textContent = dateStr;
@@ -358,9 +355,7 @@ async function saveAll() {
   
   saveStatus.classList.remove('saving');
   
-  const date = new Date();
-  const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  saveWhen.textContent = `· Today, ${timeStr}`;
+  saveWhen.textContent = `· ${formatDate(Date.now())}`;
 }
 
 function showToast(msg, undoFn = null) {
@@ -381,9 +376,5 @@ function showToast(msg, undoFn = null) {
   }, 3800);
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 init();

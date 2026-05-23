@@ -134,10 +134,4 @@ export async function exportToPdf(guide, steps) {
   return pdfBlob;
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
+

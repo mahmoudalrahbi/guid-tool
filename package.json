@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "test": "node --test",
     "sandcastle": "npx tsx .sandcastle/main.mts",
     "sandcastle:serial": "npx tsx .sandcastle/main-serial.mts"
   },

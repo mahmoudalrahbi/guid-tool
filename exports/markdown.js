@@ -30,10 +30,4 @@ export async function exportToMarkdown(guide, steps) {
   return new Blob([md], { type: "text/markdown" });
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
+

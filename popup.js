@@ -56,17 +56,7 @@ async function renderHistory() {
     const steps = await getStepsForGuide(guide.id);
     const stepCount = steps.length;
     
-    // Format date like "Today, 10:42" or "May 18"
-    const guideDate = new Date(guide.updatedAt || guide.createdAt);
-    const today = new Date();
-    const isToday = guideDate.getDate() === today.getDate() && guideDate.getMonth() === today.getMonth() && guideDate.getFullYear() === today.getFullYear();
-    
-    let dateStr = "";
-    if (isToday) {
-      dateStr = `Today, ${guideDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
-    } else {
-      dateStr = guideDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    }
+    const dateStr = formatDate(guide.updatedAt || guide.createdAt);
 
     const item = document.createElement("div");
     item.className = "guide-row";
@@ -112,10 +102,6 @@ async function renderHistory() {
   }
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 calculateStorage();
 renderHistory();
