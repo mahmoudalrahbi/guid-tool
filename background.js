@@ -16,6 +16,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     handleCompleteCapture().then(sendResponse);
     return true;
   }
+  if (msg.type === "PAUSE_RECORDING") {
+    handlePauseRecording().then(sendResponse);
+    return true;
+  }
+  if (msg.type === "RESUME_RECORDING") {
+    handleResumeRecording().then(sendResponse);
+    return true;
+  }
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -23,8 +31,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (!session?.active || session.tabId !== tabId) return;
 
   if (changeInfo.status === "complete") {
-    await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED" }).catch(() => {});
+    await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED", paused: session.paused }).catch(() => {});
   }
+
+  if (session.paused) return;
 
   if (tab.status === "complete" && tab.url !== session.lastUrl && !tab.url.startsWith("chrome://")) {
     const newUrl = tab.url;
@@ -69,20 +79,36 @@ async function handleStartRecording(tabId) {
   const tab = await chrome.tabs.get(tabId);
 
   await chrome.storage.local.set({
-    session: { guideId, tabId, stepCount: 0, active: true, lastUrl: tab.url },
+    session: { guideId, tabId, stepCount: 0, active: true, lastUrl: tab.url, paused: false },
   });
 
   await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now() });
 
   // Tell content script on that tab to start listening
-  await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED" }).catch(() => {});
+  await chrome.tabs.sendMessage(tabId, { type: "RECORDING_STARTED", paused: false }).catch(() => {});
 
+  return { ok: true };
+}
+
+async function handlePauseRecording() {
+  const { session } = await chrome.storage.local.get("session");
+  if (!session?.active) return { ok: false };
+  await chrome.storage.local.set({ session: { ...session, paused: true } });
+  await chrome.tabs.sendMessage(session.tabId, { type: "RECORDING_PAUSED" }).catch(() => {});
+  return { ok: true };
+}
+
+async function handleResumeRecording() {
+  const { session } = await chrome.storage.local.get("session");
+  if (!session?.active) return { ok: false };
+  await chrome.storage.local.set({ session: { ...session, paused: false } });
+  await chrome.tabs.sendMessage(session.tabId, { type: "RECORDING_RESUMED" }).catch(() => {});
   return { ok: true };
 }
 
 async function handleClickCaptured(metadata) {
   const { session } = await chrome.storage.local.get("session");
-  if (!session?.active) return;
+  if (!session?.active || session.paused) return;
 
   // Capture screenshot before anything else — timing is critical
   let screenshotDataUrl;

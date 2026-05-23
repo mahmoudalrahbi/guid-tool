@@ -2,14 +2,20 @@
 // to the background service worker during an active Recording Session.
 
 let recording = false;
+let paused = false;
 
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "RECORDING_STARTED") recording = true;
+  if (msg.type === "RECORDING_STARTED") {
+    recording = true;
+    paused = msg.paused || false;
+  }
   if (msg.type === "RECORDING_STOPPED") recording = false;
+  if (msg.type === "RECORDING_PAUSED") paused = true;
+  if (msg.type === "RECORDING_RESUMED") paused = false;
 });
 
 document.addEventListener("click", (e) => {
-  if (!recording) return;
+  if (!recording || paused) return;
 
   const el = e.target;
   const metadata = {

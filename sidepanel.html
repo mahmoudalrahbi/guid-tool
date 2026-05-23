@@ -24,25 +24,34 @@
     }
     #steps li img { width: 60px; height: 38px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
     #steps li span { font-size: 12px; color: #374151; }
-    #completeBtn {
+    #controls { display: flex; gap: 8px; margin-top: 12px; flex-direction: column; }
+    .btn {
       width: 100%;
       padding: 10px;
-      background: #16a34a;
       color: #fff;
       border: none;
       border-radius: 6px;
       font-size: 13px;
       cursor: pointer;
     }
+    #completeBtn { background: #16a34a; }
     #completeBtn:hover { background: #15803d; }
+    #pauseBtn { background: #eab308; }
+    #pauseBtn:hover { background: #ca8a04; }
+    #resumeBtn { background: #3b82f6; display: none; }
+    #resumeBtn:hover { background: #2563eb; }
     #empty { color: #9ca3af; font-size: 12px; margin-bottom: 12px; }
   </style>
 </head>
 <body>
-  <h2>Recording…</h2>
+  <h2 id="header">Recording…</h2>
   <p id="empty">No steps captured yet. Click anything on the page.</p>
   <ul id="steps"></ul>
-  <button id="completeBtn">Complete Capture</button>
+  <div id="controls">
+    <button id="pauseBtn" class="btn">Pause Recording</button>
+    <button id="resumeBtn" class="btn">Resume Recording</button>
+    <button id="completeBtn" class="btn">Complete Capture</button>
+  </div>
   <script src="sidepanel.js"></script>
 </body>
 </html>
