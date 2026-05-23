@@ -41,7 +41,7 @@ async function init() {
   const dateObj = new Date(guide.createdAt || Date.now());
   const timeStr = dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   const isToday = new Date().toDateString() === dateObj.toDateString();
-  const dateStr = isToday ? \`Recorded today · \${timeStr}\` : \`Recorded \${dateObj.toLocaleDateString()} · \${timeStr}\`;
+  const dateStr = isToday ? `Recorded today · ${timeStr}` : `Recorded ${dateObj.toLocaleDateString()} · ${timeStr}`;
   
   const dateChip = document.getElementById("guideDateChip");
   if (dateChip) dateChip.querySelector("span").textContent = dateStr;
