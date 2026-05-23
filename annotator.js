@@ -22,6 +22,9 @@ async function annotateScreenshot(dataUrl, x, y, dpr) {
 
   const outBlob = await canvas.convertToBlob({ type: `image/${CONFIG.CAPTURE_FORMAT}`, quality: CONFIG.ANNOTATED_QUALITY });
   // blobToDataUrl is expected to be available globally (from utils.js)
+  if (typeof blobToDataUrl !== 'function') {
+    throw new Error("blobToDataUrl is not defined. Ensure utils.js is loaded before annotator.js.");
+  }
   return blobToDataUrl(outBlob);
 }
 

@@ -26,6 +26,20 @@ test('describe: uses aiProvider if provided and successful', async () => {
   assert.equal(result, 'AI description for Submit');
 });
 
+test('describe: falls back to rule-based description if aiProvider returns falsy value', async () => {
+  const metadata = { label: 'Submit', role: 'button' };
+  const mockProvider = {
+    generateDescription: async () => null
+  };
+  const result = await describer.describe(metadata, mockProvider);
+  assert.equal(result, 'Click "Submit" (button)');
+});
+
+test('describer exports exactly the expected functions', () => {
+  const exportsKeys = Object.keys(describer).sort();
+  assert.deepEqual(exportsKeys, ['describe', 'ruleBasedDescription'].sort());
+});
+
 test('ruleBasedDescription: handles various metadata combinations', () => {
   assert.equal(describer.ruleBasedDescription({ label: 'Save', role: 'button' }), 'Click "Save" (button)');
   assert.equal(describer.ruleBasedDescription({ text: 'Link', role: 'link' }), 'Click "Link" (link)');

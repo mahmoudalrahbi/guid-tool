@@ -9,7 +9,9 @@ function ruleBasedDescription(meta) {
 async function describe(metadata, aiProvider = null) {
   if (aiProvider) {
     try {
-      return await aiProvider.generateDescription(metadata);
+      const result = await aiProvider.generateDescription(metadata);
+      if (result) return result;
+      console.warn("AI provider returned empty description, falling back to rule-based.");
     } catch (err) {
       console.warn("AI provider failed to generate description, falling back to rule-based:", err);
     }
