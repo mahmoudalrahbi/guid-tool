@@ -1,5 +1,7 @@
 import { exportToHtml } from "./html.js";
 import { exportToPdf } from "./pdf.js";
+import { exportToMarkdown } from "./markdown.js";
+import { exportToDocx } from "./docx.js";
 
 const formats = {
   html: {
@@ -13,6 +15,18 @@ const formats = {
     name: "Export as PDF",
     extension: "pdf",
     exportFn: exportToPdf
+  },
+  markdown: {
+    id: "markdown",
+    name: "Export as Markdown",
+    extension: "md",
+    exportFn: exportToMarkdown
+  },
+  docx: {
+    id: "docx",
+    name: "Export as DOCX",
+    extension: "docx",
+    exportFn: exportToDocx
   }
 };
 

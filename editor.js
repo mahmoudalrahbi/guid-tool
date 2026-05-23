@@ -224,6 +224,7 @@ function scheduleSave() {
 }
 
 async function saveAll() {
+  currentGuide.updatedAt = Date.now();
   await saveGuide(currentGuide);
   await Promise.all(currentSteps.map(step => saveStep(step)));
   setSavingStatus("saved");

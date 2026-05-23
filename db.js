@@ -73,3 +73,34 @@ export async function deleteStep(stepId) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function getAllGuides() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("guides", "readonly");
+    const req = tx.objectStore("guides").getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function deleteGuide(guideId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["guides", "steps"], "readwrite");
+    tx.objectStore("guides").delete(guideId);
+    
+    // Also delete all steps for this guide
+    const stepsStore = tx.objectStore("steps");
+    const index = stepsStore.index("guideId");
+    const req = index.getAllKeys(guideId);
+    req.onsuccess = () => {
+      req.result.forEach(stepId => {
+        stepsStore.delete(stepId);
+      });
+    };
+    
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
