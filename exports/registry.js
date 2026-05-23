@@ -42,7 +42,12 @@ export async function exportGuide(formatId, guide, steps) {
   
   const deps = {
     blobToDataUrl: globalThis.blobToDataUrl,
-    escapeHtml: globalThis.escapeHtml
+    escapeHtml: globalThis.escapeHtml,
+    html2pdf: globalThis.html2pdf,
+    docx: globalThis.docx,
+    document: globalThis.document,
+    URL: globalThis.URL,
+    Image: globalThis.Image
   };
   
   const blob = await format.exportFn(guide, steps, deps);

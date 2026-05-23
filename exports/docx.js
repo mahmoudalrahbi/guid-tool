@@ -1,5 +1,5 @@
 export async function exportToDocx(guide, steps, deps) {
-  const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel } = window.docx;
+  const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel } = deps.docx;
 
   const children = [];
 
@@ -55,7 +55,7 @@ export async function exportToDocx(guide, steps, deps) {
     children.push(new Paragraph(headingOpts));
 
     const arrayBuffer = await step.screenshotBlob.arrayBuffer();
-    const dims = await getImageDimensions(step.screenshotBlob);
+    const dims = await getImageDimensions(step.screenshotBlob, deps);
     
     const maxWidth = 600;
     let width = dims.width;
@@ -103,16 +103,16 @@ export async function exportToDocx(guide, steps, deps) {
   return await Packer.toBlob(doc);
 }
 
-function getImageDimensions(blob) {
+function getImageDimensions(blob, deps) {
   return new Promise((resolve) => {
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
+    const url = deps.URL.createObjectURL(blob);
+    const img = new deps.Image();
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      deps.URL.revokeObjectURL(url);
       resolve({ width: img.width, height: img.height });
     };
     img.onerror = () => {
-      URL.revokeObjectURL(url);
+      deps.URL.revokeObjectURL(url);
       resolve({ width: 600, height: 400 }); // fallback
     };
     img.src = url;
