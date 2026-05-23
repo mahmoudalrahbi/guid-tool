@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LocalGuide — Editor</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      max-width: 800px;
+      margin-inline: auto;
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+      color: #111;
+      background: #fff;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    #guideTitle { font-size: 18px; font-weight: 600; margin-bottom: 24px; color: #1f2937; }
+    .step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 16px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .step-num { font-size: 12px; color: #9ca3af; min-width: 24px; padding-top: 4px; }
+    .step img { width: 200px; border-radius: 6px; flex-shrink: 0; }
+    .step p { margin: 0; color: #374151; }
+    #exportBtn {
+      margin-top: 24px;
+      padding: 10px 20px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #exportBtn:hover { background: #1d4ed8; }
+    #loading { color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <p id="loading">Loading guide…</p>
+  <div id="app" style="display:none">
+    <div id="guideTitle"></div>
+    <div id="stepList"></div>
+    <button id="exportBtn">Export HTML</button>
+  </div>
+  <script src="editor.js" type="module"></script>
+</body>
+</html>
