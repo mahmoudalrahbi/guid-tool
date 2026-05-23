@@ -1,17 +1,18 @@
-const DB_NAME = "localguide";
-const DB_VERSION = 1;
-
 function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    const req = indexedDB.open(CONFIG.DB.NAME, CONFIG.DB.VERSION);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains("guides")) {
-        db.createObjectStore("guides", { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains("steps")) {
-        const store = db.createObjectStore("steps", { keyPath: "id" });
-        store.createIndex("guideId", "guideId", { unique: false });
+      const oldVersion = e.oldVersion;
+      
+      if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains(CONFIG.STORE_GUIDES)) {
+          db.createObjectStore(CONFIG.STORE_GUIDES, { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains(CONFIG.STORE_STEPS)) {
+          const store = db.createObjectStore(CONFIG.STORE_STEPS, { keyPath: "id" });
+          store.createIndex("guideId", "guideId", { unique: false });
+        }
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -22,8 +23,8 @@ function openDB() {
 async function saveGuide(guide) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("guides", "readwrite");
-    tx.objectStore("guides").put(guide);
+    const tx = db.transaction(CONFIG.STORE_GUIDES, "readwrite");
+    tx.objectStore(CONFIG.STORE_GUIDES).put(guide);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -32,8 +33,8 @@ async function saveGuide(guide) {
 async function getGuide(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("guides", "readonly");
-    const req = tx.objectStore("guides").get(id);
+    const tx = db.transaction(CONFIG.STORE_GUIDES, "readonly");
+    const req = tx.objectStore(CONFIG.STORE_GUIDES).get(id);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
@@ -42,8 +43,8 @@ async function getGuide(id) {
 async function saveStep(step) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("steps", "readwrite");
-    tx.objectStore("steps").put(step);
+    const tx = db.transaction(CONFIG.STORE_STEPS, "readwrite");
+    tx.objectStore(CONFIG.STORE_STEPS).put(step);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -52,8 +53,8 @@ async function saveStep(step) {
 async function getStepsForGuide(guideId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("steps", "readonly");
-    const index = tx.objectStore("steps").index("guideId");
+    const tx = db.transaction(CONFIG.STORE_STEPS, "readonly");
+    const index = tx.objectStore(CONFIG.STORE_STEPS).index("guideId");
     const req = index.getAll(guideId);
     req.onsuccess = () => resolve(req.result.sort((a, b) => a.order - b.order));
     req.onerror = () => reject(req.error);
@@ -63,8 +64,8 @@ async function getStepsForGuide(guideId) {
 async function deleteStep(stepId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("steps", "readwrite");
-    tx.objectStore("steps").delete(stepId);
+    const tx = db.transaction(CONFIG.STORE_STEPS, "readwrite");
+    tx.objectStore(CONFIG.STORE_STEPS).delete(stepId);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -73,8 +74,8 @@ async function deleteStep(stepId) {
 async function getAllGuides() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("guides", "readonly");
-    const req = tx.objectStore("guides").getAll();
+    const tx = db.transaction(CONFIG.STORE_GUIDES, "readonly");
+    const req = tx.objectStore(CONFIG.STORE_GUIDES).getAll();
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
@@ -83,11 +84,11 @@ async function getAllGuides() {
 async function deleteGuide(guideId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(["guides", "steps"], "readwrite");
-    tx.objectStore("guides").delete(guideId);
+    const tx = db.transaction([CONFIG.STORE_GUIDES, CONFIG.STORE_STEPS], "readwrite");
+    tx.objectStore(CONFIG.STORE_GUIDES).delete(guideId);
     
     // Also delete all steps for this guide
-    const stepsStore = tx.objectStore("steps");
+    const stepsStore = tx.objectStore(CONFIG.STORE_STEPS);
     const index = stepsStore.index("guideId");
     const req = index.getAllKeys(guideId);
     req.onsuccess = () => {

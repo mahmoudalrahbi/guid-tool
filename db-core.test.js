@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { IDBFactory } = require('fake-indexeddb');
 require('fake-indexeddb/auto');
 
+global.CONFIG = require('./config.js');
 const dbCore = require('./db-core.js');
 
 beforeEach(() => {

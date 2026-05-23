@@ -1,7 +1,7 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("messages.js", "db-core.js", "utils.js");
+importScripts("config.js", "messages.js", "db-core.js", "utils.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === MSG_START_RECORDING) {
@@ -46,7 +46,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
       let screenshotDataUrl;
       try {
-        screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: "jpeg", quality: 80 });
+        screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: CONFIG.CAPTURE_FORMAT, quality: CONFIG.CAPTURE_QUALITY });
       } catch {
         return; // Tab not capturable
       }
@@ -67,7 +67,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       await chrome.storage.local.set({ session: { ...currentSession, stepCount } });
 
       chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
-    }, 500);
+    }, CONFIG.UI_NAV_DELAY_MS);
   }
 });
 
@@ -114,7 +114,7 @@ async function handleClickCaptured(metadata) {
   // Capture screenshot before anything else — timing is critical
   let screenshotDataUrl;
   try {
-    screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: "jpeg", quality: 80 });
+    screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: CONFIG.CAPTURE_FORMAT, quality: CONFIG.CAPTURE_QUALITY });
   } catch {
     return; // Tab not capturable (e.g. chrome:// page)
   }
@@ -171,15 +171,15 @@ async function annotateScreenshot(dataUrl, x, y, dpr) {
   // Scale click coords to device pixel ratio (screenshots are at devicePixelRatio)
   const cx = x * dpr;
   const cy = y * dpr;
-  const r = 28 * dpr;
+  const r = CONFIG.ANNOTATION.RADIUS_PX * dpr;
 
-  ctx.strokeStyle = "#f59e0b";
-  ctx.lineWidth = 3 * dpr;
+  ctx.strokeStyle = CONFIG.ANNOTATION.COLOR;
+  ctx.lineWidth = CONFIG.ANNOTATION.STROKE_WIDTH_PX * dpr;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, 2 * Math.PI);
   ctx.stroke();
 
-  const outBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.82 });
+  const outBlob = await canvas.convertToBlob({ type: `image/${CONFIG.CAPTURE_FORMAT}`, quality: CONFIG.ANNOTATED_QUALITY });
   return blobToDataUrl(outBlob);
 }
 

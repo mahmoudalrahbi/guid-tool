@@ -20,7 +20,7 @@ document.addEventListener("click", (e) => {
   const el = e.target;
   const metadata = {
     tag: el.tagName.toLowerCase(),
-    text: (el.innerText || el.textContent || "").trim().slice(0, 120),
+    text: (el.innerText || el.textContent || "").trim().slice(0, CONFIG.UI_MAX_DESC_LEN),
     label: el.getAttribute("aria-label") || "",
     role: el.getAttribute("role") || "",
     x: e.clientX,

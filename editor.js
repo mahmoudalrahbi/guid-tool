@@ -241,7 +241,7 @@ document.addEventListener('dragover', (e) => {
   if (!dragSrc) return;
   e.preventDefault();
   
-  const threshold = 80;
+  const threshold = CONFIG.UI_DRAG_THRESHOLD;
   const y = e.clientY;
   const h = window.innerHeight;
   
@@ -346,7 +346,7 @@ function syncOrderAndSave() {
 function flashSaving() {
   saveStatus.classList.add('saving');
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveAll, 700);
+  saveTimeout = setTimeout(saveAll, CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS);
 }
 
 async function saveAll() {
@@ -371,10 +371,10 @@ function showToast(msg, undoFn = null) {
   }
   toastHost.appendChild(t);
   setTimeout(() => {
-    t.style.transition = 'opacity 200ms';
+    t.style.transition = `opacity ${CONFIG.UI_TOAST_ANIMATION_MS}ms`;
     t.style.opacity = '0';
-    setTimeout(() => t.remove(), 220);
-  }, 3800);
+    setTimeout(() => t.remove(), CONFIG.UI_TOAST_FADEOUT_MS);
+  }, CONFIG.EDITOR.UNDO_TIMEOUT_MS);
 }
 
 
