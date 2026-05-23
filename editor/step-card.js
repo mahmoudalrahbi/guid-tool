@@ -44,7 +44,7 @@ export function createStepElement(step, { onDescChange, onDelete }) {
   textarea.addEventListener("input", () => {
     step.description = textarea.value;
     autoSize(textarea);
-    onDescChange();
+    onDescChange(textarea.value);
   });
 
   const delBtn = card.querySelector(".del-btn");
