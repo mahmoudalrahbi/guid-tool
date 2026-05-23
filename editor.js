@@ -4,7 +4,7 @@ import { getExportFormats, exportGuide } from "./exports/registry.js";
 import { showToast } from "./editor/toast.js";
 import { setupExportMenu } from "./editor/export-menu.js";
 import { createStepElement, renumber, autoSize } from "./editor/step-card.js";
-import { attachDragAndDrop } from "./editor/drag-drop.js";
+import { createDragDrop } from "./editor/drag-drop.js";
 import { createAutoSave } from "./editor/auto-save.js";
 
 const params = new URLSearchParams(location.search);
@@ -24,6 +24,7 @@ const toastHost = document.getElementById("toastHost");
 let currentGuide = null;
 let currentSteps = [];
 let scheduleSave = null;
+let currentDragDrop = null;
 
 async function init() {
   if (!guideId) return;
@@ -118,9 +119,16 @@ function renderSteps() {
   });
 
   renumber(stepsList, stepCountBadge);
-  attachDragAndDrop(stepsList, document, window, CONFIG, () => {
-    renumber(stepsList, stepCountBadge);
-    syncOrderAndSave();
+  
+  if (currentDragDrop) currentDragDrop.destroy();
+  currentDragDrop = createDragDrop(stepsList, {
+    document,
+    window,
+    config: CONFIG,
+    onReorder: () => {
+      renumber(stepsList, stepCountBadge);
+      syncOrderAndSave();
+    }
   });
 }
 

@@ -17,6 +17,11 @@ function createMockElement(className = '') {
       this.listeners[event] = this.listeners[event] || [];
       this.listeners[event].push(cb);
     },
+    removeEventListener: function(event, cb) {
+      if (this.listeners[event]) {
+        this.listeners[event] = this.listeners[event].filter(l => l !== cb);
+      }
+    },
     dispatchEvent: function(event, payload) {
       if (this.listeners[event]) this.listeners[event].forEach(cb => cb(payload));
     },
@@ -32,29 +37,39 @@ function createMockElement(className = '') {
   };
 }
 
-const mockDoc = {
+const createMockDoc = () => ({
   listeners: {},
   addEventListener: function(event, cb) { 
     this.listeners[event] = this.listeners[event] || [];
     this.listeners[event].push(cb);
   },
+  removeEventListener: function(event, cb) {
+    if (this.listeners[event]) {
+      this.listeners[event] = this.listeners[event].filter(l => l !== cb);
+    }
+  },
   querySelectorAll: () => []
-};
+});
 
-const mockWin = {
+const createMockWin = () => ({
   innerHeight: 800,
   requestAnimationFrame: () => 1,
   cancelAnimationFrame: () => {}
-};
+});
 
-test('attachDragAndDrop: binds events and handles drop reorder', async () => {
-  const { attachDragAndDrop } = await import('./drag-drop.js');
+test('createDragDrop: binds events and handles drop reorder', async () => {
+  const { createDragDrop } = await import('./drag-drop.js');
   
   const stepsList = createMockElement();
+  const mockDoc = createMockDoc();
+  const mockWin = createMockWin();
   
   let reorderCalled = false;
-  attachDragAndDrop(stepsList, mockDoc, mockWin, { UI_DRAG_THRESHOLD: 80 }, () => {
-    reorderCalled = true;
+  const instance = createDragDrop(stepsList, {
+    document: mockDoc,
+    window: mockWin,
+    config: { UI_DRAG_THRESHOLD: 80 },
+    onReorder: () => { reorderCalled = true; }
   });
   
   // Test dragstart
@@ -72,4 +87,40 @@ test('attachDragAndDrop: binds events and handles drop reorder', async () => {
   // Test dragend
   stepsList.dispatchEvent('dragend', { target: stepEl });
   assert.ok(!stepEl.classList.contains('dragging'));
+  
+  // Verify state is clean (no leftover dragSrc)
+  const stepTarget2 = createMockElement('step');
+  stepsList.dispatchEvent('dragover', { target: stepTarget2, preventDefault: () => {} });
+  assert.equal(stepTarget2.classList.contains('drag-over'), false);
+  
+  instance.destroy();
 });
+
+test('createDragDrop: two instances do not share state', async () => {
+  const { createDragDrop } = await import('./drag-drop.js');
+  
+  const list1 = createMockElement();
+  const doc1 = createMockDoc();
+  const win1 = createMockWin();
+  const inst1 = createDragDrop(list1, { document: doc1, window: win1, config: { UI_DRAG_THRESHOLD: 80 } });
+  
+  const list2 = createMockElement();
+  const doc2 = createMockDoc();
+  const win2 = createMockWin();
+  const inst2 = createDragDrop(list2, { document: doc2, window: win2, config: { UI_DRAG_THRESHOLD: 80 } });
+  
+  // start drag on list1
+  const step1 = createMockElement('step');
+  list1.dispatchEvent('dragstart', { target: step1, dataTransfer: {} });
+  
+  // drag over on list2 should NOT highlight because dragSrc is not shared
+  const step2 = createMockElement('step');
+  list2.dispatchEvent('dragover', { target: step2, preventDefault: () => {} });
+  
+  // If it doesn't share state, step2 shouldn't get 'drag-over'
+  assert.equal(step2.classList.contains('drag-over'), false);
+  
+  inst1.destroy();
+  inst2.destroy();
+});
+
