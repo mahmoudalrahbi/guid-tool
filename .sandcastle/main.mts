@@ -66,8 +66,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     // One iteration is enough: the planner just needs to read and reason,
     // not write code.
     maxIterations: 1,
-    // Opus for planning: dependency analysis benefits from deeper reasoning.
-    agent: sandcastle.claudeCode("claude-sonnet-4-6"),
+    agent: sandcastle.claudeCode("claude-haiku-4-5-20251001"),
     promptFile: "./.sandcastle/plan-prompt.md",
   });
 
@@ -120,7 +119,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
         // Run the implementer
         const implement = await sandbox.run({
           name: "implementer",
-          maxIterations: 100,
+          maxIterations: 30,
           agent: sandcastle.claudeCode("claude-sonnet-4-6"),
           promptFile: "./.sandcastle/implement-prompt.md",
           promptArgs: {
@@ -135,7 +134,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
           const review = await sandbox.run({
             name: "reviewer",
             maxIterations: 1,
-            agent: sandcastle.claudeCode("claude-sonnet-4-6"),
+            agent: sandcastle.claudeCode("claude-haiku-4-5-20251001"),
             promptFile: "./.sandcastle/review-prompt.md",
             promptArgs: {
               BRANCH: issue.branch,
@@ -206,7 +205,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     sandbox: docker(),
     name: "merger",
     maxIterations: 1,
-    agent: sandcastle.claudeCode("claude-sonnet-4-6"),
+    agent: sandcastle.claudeCode("claude-haiku-4-5-20251001"),
     promptFile: "./.sandcastle/merge-prompt.md",
     promptArgs: {
       // A markdown list of branch names, one per line.
