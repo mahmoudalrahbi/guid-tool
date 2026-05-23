@@ -3,116 +3,145 @@
 <head>
   <meta charset="UTF-8" />
   <title>LocalGuide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
   <style>
-    body {
-      width: 320px;
-      padding: 16px;
-      font-family: system-ui, sans-serif;
-      font-size: 14px;
-      color: #1a1a1a;
-      margin: 0;
+    body { padding: 0; min-height: 100vh; display: flex; flex-direction: column; width: 400px; height: 500px; }
+    .popup-frame { display: flex; flex-direction: column; flex: 1; height: 100%; overflow: hidden; }
+
+    .popup-header {
+      padding: 16px 18px 14px; display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0;
     }
-    h1 { font-size: 16px; margin: 0 0 12px; }
-    button.primary {
-      width: 100%;
-      padding: 10px;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
+    .popup-header .brand-block { display: flex; align-items: center; gap: 11px; }
+    .popup-header .mark {
+      width: 30px; height: 30px; border-radius: 8px; background: var(--bg-3);
+      border: 1px solid var(--line); display: grid; place-items: center;
     }
-    button.primary:hover { background: #1d4ed8; }
-    #status { margin-top: 10px; font-size: 12px; color: #666; }
-    
-    .history-section {
-      margin-top: 24px;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 16px;
+    .popup-header .mark::after {
+      content: ""; width: 9px; height: 9px; background: var(--amber); border-radius: 999px;
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.18);
     }
-    .history-title {
-      font-size: 13px;
-      text-transform: uppercase;
-      color: #6b7280;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
-      font-weight: 600;
+    .popup-header .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+    .popup-header .tag { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+    .popup-header .stats {
+      text-align: right; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); line-height: 1.5;
     }
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .popup-header .stats b { color: var(--text-1); font-weight: 500; }
+
+    .popup-cta { padding: 14px 18px 16px; flex-shrink: 0; }
+    .start-btn {
+      width: 100%; height: 44px; border-radius: 9px; background: var(--amber); color: #1a1300;
+      border: none; font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: -0.005em;
+      display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+      transition: background 120ms ease, transform 80ms ease; position: relative;
     }
-    .guide-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.1s, border-color 0.1s;
+    .start-btn:hover { background: #FFB224; }
+    .start-btn:active { transform: translateY(0.5px); }
+    .start-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .start-btn .kbd {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      font-family: var(--font-mono); font-size: 10px; color: rgba(26,19,0,0.55);
+      background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em;
     }
-    .guide-item:hover {
-      background: #f3f4f6;
-      border-color: #d1d5db;
+
+    .popup-section-head { padding: 4px 18px 8px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .popup-section-head .lbl {
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em;
     }
-    .guide-info {
-      flex: 1;
-      min-width: 0;
+    .popup-section-head .all { font-size: 11px; color: var(--text-2); cursor: pointer; }
+    .popup-section-head .all:hover { color: var(--text-1); }
+
+    .history { flex: 1; overflow-y: auto; padding: 0 8px 12px; scrollbar-width: thin; scrollbar-color: #2A2A2A transparent; }
+    .history::-webkit-scrollbar { width: 6px; }
+    .history::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 999px; }
+
+    .guide-row {
+      display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center;
+      padding: 10px 10px; border-radius: 8px; cursor: pointer; transition: background 120ms ease;
     }
-    .guide-name {
-      font-weight: 500;
-      font-size: 13px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #111827;
-      margin-bottom: 4px;
+    .guide-row:hover { background: var(--bg-2); }
+    .guide-row + .guide-row { margin-top: 2px; }
+    .guide-icon {
+      width: 36px; height: 36px; border-radius: 7px; background: var(--bg-2); border: 1px solid var(--line);
+      display: grid; place-items: center; color: var(--text-2); flex-shrink: 0;
+    }
+    .guide-icon svg { display: block; }
+    .guide-title {
+      font-size: 13px; color: var(--text-1); font-weight: 500; letter-spacing: -0.005em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .guide-meta {
-      font-size: 11px;
-      color: #6b7280;
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); margin-top: 2px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .delete-btn {
-      background: transparent;
-      border: none;
-      color: #9ca3af;
-      cursor: pointer;
-      padding: 6px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .guide-meta .sep { width: 2px; height: 2px; border-radius: 999px; background: var(--text-4); }
+    .guide-row .chev {
+      color: var(--text-4); display: grid; place-items: center; transition: color 120ms ease, transform 120ms ease;
     }
-    .delete-btn:hover {
-      color: #ef4444;
-      background: #fee2e2;
+    .guide-row:hover .chev { color: var(--text-2); transform: translateX(2px); }
+
+    .guide-actions { display: none; align-items: center; gap: 4px; }
+    .guide-row:hover .guide-actions { display: flex; }
+    .guide-row:hover .chev { display: none; }
+
+    .empty-history { text-align: center; color: var(--text-3); font-size: 12px; padding: 20px 0; display: none; }
+
+    .popup-footer {
+      border-top: 1px solid var(--line-soft); padding: 10px 16px; display: flex; align-items: center;
+      justify-content: space-between; font-size: 11px; color: var(--text-3); flex-shrink: 0;
     }
-    .empty-state {
-      font-size: 13px;
-      color: #9ca3af;
-      text-align: center;
-      padding: 16px 0;
-      display: none;
-    }
+    .popup-footer .links { display: flex; gap: 14px; }
+    .popup-footer .links a { color: var(--text-2); text-decoration: none; cursor: pointer; }
+    .popup-footer .links a:hover { color: var(--text-1); }
+    .popup-footer .storage { font-family: var(--font-mono); font-size: 10.5px; }
   </style>
 </head>
 <body>
-  <h1>LocalGuide</h1>
-  <button id="startBtn" class="primary">Start Recording</button>
-  <div id="status"></div>
-  
-  <div class="history-section">
-    <div class="history-title">Recent Guides</div>
-    <div id="emptyState" class="empty-state">No guides recorded yet.</div>
-    <div id="historyList" class="history-list">
-      <!-- Guide items injected here -->
+  <div class="popup-frame">
+    <div class="popup-header">
+      <div class="brand-block">
+        <div class="mark"></div>
+        <div>
+          <div class="name">LocalGuide</div>
+          <div class="tag">Record · annotate · share — all local</div>
+        </div>
+      </div>
+      <div class="stats">
+        <b id="guideCount">0</b> Guides<br/>
+        <span>locally stored</span>
+      </div>
+    </div>
+
+    <div class="popup-cta">
+      <button class="start-btn" id="startBtn">
+        <span style="display:inline-flex; align-items:center; gap:9px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="7" r="5"/></svg>
+          <span id="startBtnText">Start Recording</span>
+        </span>
+        <span class="kbd">⌘⇧R</span>
+      </button>
+    </div>
+
+    <div class="popup-section-head">
+      <div class="lbl">Guide History</div>
+      <div class="all">View all →</div>
+    </div>
+
+    <div class="history" id="historyList"></div>
+    <div class="empty-history" id="emptyHistory">No guides yet</div>
+
+    <div class="popup-footer">
+      <div class="storage" id="storageReadout">Calculating... · IndexedDB</div>
+      <div class="links">
+        <a>Import</a>
+        <a id="settingsLink">Settings</a>
+      </div>
     </div>
   </div>
-
-  <script src="popup.js" type="module"></script>
+  
+  <script type="module" src="popup.js"></script>
 </body>
 </html>
