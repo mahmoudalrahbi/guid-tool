@@ -20,6 +20,10 @@ _Avoid_: Session, capture session, recording
 A full-viewport screenshot with a colored highlight circle drawn over the clicked element, showing the Reader exactly where to act.
 _Avoid_: Screenshot, snapshot, image (those miss the highlight annotation which is load-bearing)
 
+**Popup**:
+The browser action popup that opens when the Recorder clicks the extension icon. Entry point for starting a new Recording Session and viewing Guide History.
+_Avoid_: Extension menu, toolbar menu, overlay
+
 **Side Panel**:
 The Chrome side panel UI that is open during a Recording Session. Shows captured Steps in real-time. Contains Pause and Complete Capture controls.
 _Avoid_: Popup, sidebar, panel
