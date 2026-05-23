@@ -1,4 +1,4 @@
-export async function exportToPdf(guide, steps) {
+export async function exportToPdf(guide, steps, deps) {
   // We need to construct a DOM element specifically for PDF generation
   const container = document.createElement("div");
   container.style.width = "800px";
@@ -89,7 +89,7 @@ export async function exportToPdf(guide, steps) {
     stepEl.appendChild(stepHeader);
 
     // Image
-    const imgUrl = await blobToDataUrl(step.screenshotBlob);
+    const imgUrl = await deps.blobToDataUrl(step.screenshotBlob);
     const imgEl = document.createElement("img");
     imgEl.src = imgUrl;
     imgEl.style.width = "100%";

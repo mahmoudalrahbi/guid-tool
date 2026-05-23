@@ -1,4 +1,4 @@
-export async function exportToDocx(guide, steps) {
+export async function exportToDocx(guide, steps, deps) {
   const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel } = window.docx;
 
   const children = [];

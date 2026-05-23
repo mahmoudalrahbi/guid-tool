@@ -1,7 +1,7 @@
-export async function exportToHtml(guide, steps) {
+export async function exportToHtml(guide, steps, deps) {
   const stepsWithDataUrls = await Promise.all(
     steps.map(async (step) => {
-      const dataUrl = await blobToDataUrl(step.screenshotBlob);
+      const dataUrl = await deps.blobToDataUrl(step.screenshotBlob);
       return { ...step, dataUrl };
     })
   );
@@ -13,14 +13,14 @@ export async function exportToHtml(guide, steps) {
       <div class="step-num">${step.order}</div>
       <div class="step-body">
         <div class="shot"><img src="${step.dataUrl}" alt="Step ${step.order}" /></div>
-        <p>${escapeHtml(step.description)}</p>
+        <p>${deps.escapeHtml(step.description)}</p>
       </div>
     </div>`
     )
     .join("\n");
 
-  const guideDescHtml = guide.description ? `<p class="guide-desc">${escapeHtml(guide.description)}</p>` : "";
-  const guideTitle = guide.title ? escapeHtml(guide.title) : "Untitled Guide";
+  const guideDescHtml = guide.description ? `<p class="guide-desc">${deps.escapeHtml(guide.description)}</p>` : "";
+  const guideTitle = guide.title ? deps.escapeHtml(guide.title) : "Untitled Guide";
 
   const html = `<!DOCTYPE html>
 <html lang="en">

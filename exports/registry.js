@@ -40,7 +40,12 @@ export async function exportGuide(formatId, guide, steps) {
     throw new Error(`Unknown export format: ${formatId}`);
   }
   
-  const blob = await format.exportFn(guide, steps);
+  const deps = {
+    blobToDataUrl: globalThis.blobToDataUrl,
+    escapeHtml: globalThis.escapeHtml
+  };
+  
+  const blob = await format.exportFn(guide, steps, deps);
   
   // Download the blob
   const url = URL.createObjectURL(blob);

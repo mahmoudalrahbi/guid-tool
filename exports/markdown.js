@@ -1,7 +1,7 @@
-export async function exportToMarkdown(guide, steps) {
+export async function exportToMarkdown(guide, steps, deps) {
   const stepsWithDataUrls = await Promise.all(
     steps.map(async (step) => {
-      const dataUrl = await blobToDataUrl(step.screenshotBlob);
+      const dataUrl = await deps.blobToDataUrl(step.screenshotBlob);
       return { ...step, dataUrl };
     })
   );
@@ -19,7 +19,7 @@ export async function exportToMarkdown(guide, steps) {
   md += `---\n\n`;
 
   stepsWithDataUrls.forEach((step) => {
-    md += `## STEP ${step.order.toString().padStart(2, '0')}\n\n`;
+    md += `### STEP ${step.order.toString().padStart(2, '0')}\n\n`;
     md += `![Step ${step.order}](${step.dataUrl})\n\n`;
     if (step.description) {
       md += `${step.description}\n\n`;
