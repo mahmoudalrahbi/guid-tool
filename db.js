@@ -63,3 +63,13 @@ export async function getStepsForGuide(guideId) {
     req.onerror = () => reject(req.error);
   });
 }
+
+export async function deleteStep(stepId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("steps", "readwrite");
+    tx.objectStore("steps").delete(stepId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
