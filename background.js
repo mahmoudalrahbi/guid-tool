@@ -1,7 +1,7 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("db-sw.js", "utils.js");
+importScripts("db-core.js", "utils.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "START_RECORDING") {

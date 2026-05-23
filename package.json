@@ -5,7 +5,8 @@
     "sandcastle:serial": "npx tsx .sandcastle/main-serial.mts"
   },
   "devDependencies": {
-    "@ai-hero/sandcastle": "^0.5.11"
+    "@ai-hero/sandcastle": "^0.5.11",
+    "fake-indexeddb": "^6.2.5"
   },
   "dependencies": {
     "docx": "^9.6.1",
