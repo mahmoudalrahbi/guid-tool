@@ -25,6 +25,7 @@ document.addEventListener("click", (e) => {
     role: el.getAttribute("role") || "",
     x: e.clientX,
     y: e.clientY,
+    dpr: window.devicePixelRatio || 1,
   };
 
   chrome.runtime.sendMessage({ type: "CLICK_CAPTURED", metadata });

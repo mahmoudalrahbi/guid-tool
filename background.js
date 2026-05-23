@@ -120,7 +120,7 @@ async function handleClickCaptured(metadata) {
   }
 
   // Draw highlight circle over click coordinates using OffscreenCanvas
-  const annotated = await annotateScreenshot(screenshotDataUrl, metadata.x, metadata.y);
+  const annotated = await annotateScreenshot(screenshotDataUrl, metadata.x, metadata.y, metadata.dpr);
 
   // Convert data URL → Blob for compact IndexedDB storage
   const blob = dataUrlToBlob(annotated);
@@ -159,7 +159,7 @@ async function handleCompleteCapture() {
   return { ok: true };
 }
 
-async function annotateScreenshot(dataUrl, x, y) {
+async function annotateScreenshot(dataUrl, x, y, dpr) {
   const res = await fetch(dataUrl);
   const blob = await res.blob();
   const bitmap = await createImageBitmap(blob);
@@ -169,12 +169,11 @@ async function annotateScreenshot(dataUrl, x, y) {
   ctx.drawImage(bitmap, 0, 0);
 
   // Scale click coords to device pixel ratio (screenshots are at devicePixelRatio)
-  const dpr = self.devicePixelRatio || 1;
   const cx = x * dpr;
   const cy = y * dpr;
   const r = 28 * dpr;
 
-  ctx.strokeStyle = "#ef4444";
+  ctx.strokeStyle = "#f59e0b";
   ctx.lineWidth = 3 * dpr;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, 2 * Math.PI);
