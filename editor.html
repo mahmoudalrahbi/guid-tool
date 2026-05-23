@@ -1,292 +1,369 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>LocalGuide — Editor</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0f172a; /* Slate 900 */
-      color: #f8fafc; /* Slate 50 */
-      line-height: 1.5;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 48px 24px;
-    }
-    .container {
-      width: 100%;
-      max-width: 800px;
-    }
-    
-    /* Header Section */
-    .header {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 32px;
-      margin-bottom: 32px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    .input-group {
-      margin-bottom: 24px;
-    }
-    .input-group:last-child {
-      margin-bottom: 0;
-    }
-    .label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: #94a3b8;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .title-input {
-      width: 100%;
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid #334155;
-      color: #f8fafc;
-      font-size: 28px;
-      font-weight: 600;
-      padding: 8px 0;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .title-input:focus {
-      border-color: #3b82f6;
-    }
-    .desc-input {
-      width: 100%;
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid #334155;
-      border-radius: 8px;
-      color: #cbd5e1;
-      font-size: 15px;
-      padding: 12px;
-      resize: vertical;
-      min-height: 80px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .desc-input:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
+<meta charset="utf-8" />
+<title>LocalGuide — Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body { background: var(--bg-0); }
+  button, input, textarea { font-family: inherit; color: inherit; }
+  textarea { resize: none; }
 
-    /* Steps Section */
-    .steps-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      margin-bottom: 48px;
-    }
-    .step-card {
-      display: flex;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
-      position: relative;
-    }
-    .step-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
-      border-color: #475569;
-    }
-    .drag-handle {
-      width: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 23, 42, 0.3);
-      border-right: 1px solid #334155;
-      cursor: grab;
-      color: #64748b;
-      transition: color 0.2s;
-    }
-    .drag-handle:hover {
-      color: #f8fafc;
-    }
-    .drag-handle svg {
-      width: 20px;
-      height: 20px;
-    }
-    .step-content {
-      display: flex;
-      flex: 1;
-      padding: 20px;
-      gap: 24px;
-    }
-    .step-image {
-      width: 240px;
-      height: 150px;
-      background: #0f172a;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-    .step-details {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .step-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .step-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: #3b82f6;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      height: 24px;
-      width: 24px;
-      border-radius: 12px;
-    }
-    .delete-btn {
-      background: transparent;
-      border: none;
-      color: #ef4444;
-      cursor: pointer;
-      padding: 6px;
-      border-radius: 6px;
-      transition: background 0.2s, color 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .delete-btn:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
-    .step-desc-input {
-      flex: 1;
-      background: transparent;
-      border: 1px solid transparent;
-      color: #f8fafc;
-      font-size: 15px;
-      resize: none;
-      padding: 8px;
-      border-radius: 6px;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .step-desc-input:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .step-desc-input:focus {
-      background: rgba(15, 23, 42, 0.5);
-      border-color: #3b82f6;
-    }
+  /* ============== TOP BAR ============== */
+  .topbar {
+    position: sticky; top: 0; z-index: 50; background: rgba(15, 15, 15, 0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; height: 60px; padding: 0 32px;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 28px; align-items: center;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 7px; background: var(--bg-2); border: 1px solid var(--line);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .brand-mark::after {
+    content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  }
+  .brand .crumbs {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); font-family: var(--font-mono);
+  }
+  .brand .crumbs a { color: var(--text-2); text-decoration: none; cursor: pointer; }
+  .brand .crumbs a:hover { color: var(--text-1); }
+  .brand .crumbs .sep { color: var(--text-4); }
+  .brand .crumbs .current { color: var(--text-1); }
 
-    /* Actions */
-    .actions-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(12px);
-      padding: 24px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      position: sticky;
-      bottom: 24px;
-      z-index: 10;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
-    }
-    .save-status {
-      font-size: 14px;
-      color: #94a3b8;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .save-status.saved {
-      color: #10b981; /* Emerald 500 */
-    }
-    .actions-right {
-      display: flex;
-      gap: 16px;
-    }
-    .btn {
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: transform 0.1s, box-shadow 0.2s;
-    }
-    .btn:active {
-      transform: scale(0.98);
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-    .btn-primary:hover {
-      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-    }
-    #loading {
-      color: #9ca3af;
-      margin-bottom: 24px;
-    }
-  </style>
+  /* Save status */
+  .save-status {
+    display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px;
+    color: var(--text-3); font-family: var(--font-mono); letter-spacing: 0.02em;
+  }
+  .save-status .pip {
+    width: 6px; height: 6px; border-radius: 999px; background: #4ADE80; box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+  }
+  .save-status.saving .pip {
+    background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18); animation: pulse 1.2s ease-in-out infinite;
+  }
+  .save-status.saving .label::after { content: "Saving…"; }
+  .save-status .label::after { content: "Saved"; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.55); }
+    50% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0); }
+  }
+  .save-status .when { color: var(--text-4); }
+
+  /* Actions */
+  .actions { display: flex; align-items: center; gap: 8px; }
+
+  /* Export dropdown */
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; min-width: 220px;
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    display: none; z-index: 60;
+  }
+  .dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu .item {
+    display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center;
+    padding: 9px 10px; border-radius: 7px; cursor: pointer; font-size: 13px; color: var(--text-1); transition: background 120ms;
+  }
+  .dropdown-menu .item:hover { background: var(--bg-2); }
+  .dropdown-menu .item .ico {
+    width: 28px; height: 28px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--line);
+    display: grid; place-items: center; color: var(--text-2);
+  }
+  .dropdown-menu .item:hover .ico { color: var(--text-1); border-color: #383838; }
+  .dropdown-menu .item .meta {
+    font-family: var(--font-mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .dropdown-menu .sep { height: 1px; background: var(--line-soft); margin: 6px 4px; }
+
+  /* ============== DOC HEADER ============== */
+  .doc { max-width: 880px; margin: 0 auto; padding: 56px 32px 160px; }
+  .doc-eyebrow {
+    display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 18px;
+  }
+  .doc-eyebrow .pip { width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+  .doc-eyebrow .stat { color: var(--text-2); }
+  .doc-eyebrow .stat b { color: var(--text-1); font-weight: 500; }
+  .doc-eyebrow .dot { width: 2px; height: 2px; border-radius: 999px; background: var(--text-4); }
+
+  .title-input {
+    width: 100%; background: transparent; border: none; outline: none; font-family: inherit;
+    color: var(--text-1); font-size: 38px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15;
+    padding: 4px 0; margin: 0; border-bottom: 2px solid transparent; transition: border-color 140ms;
+  }
+  .title-input:hover { border-bottom-color: var(--line); }
+  .title-input:focus { border-bottom-color: var(--accent); }
+  .title-input::placeholder { color: var(--text-4); }
+
+  .desc-input {
+    width: 100%; background: transparent; border: 1px solid transparent; border-radius: 8px;
+    padding: 8px 0; margin: 10px 0 0; font-family: inherit; font-size: 16px; line-height: 1.55;
+    color: var(--text-2); letter-spacing: -0.005em; outline: none; resize: none; overflow: hidden;
+    transition: color 120ms, padding 120ms, border-color 120ms, background 120ms;
+  }
+  .desc-input:hover { color: var(--text-1); }
+  .desc-input:focus { background: var(--bg-2); border-color: var(--accent-line); color: var(--text-1); padding: 8px 12px; }
+  .desc-input::placeholder { color: var(--text-4); }
+
+  .doc-meta { display: flex; align-items: center; gap: 14px; margin-top: 14px; font-size: 13px; color: var(--text-2); }
+  .doc-meta .chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px;
+    background: var(--bg-2); border: 1px solid var(--line); font-size: 11.5px; color: var(--text-2); font-family: var(--font-mono);
+  }
+  .doc-meta .chip svg { color: var(--text-3); }
+
+  /* ============== STEPS ============== */
+  .steps { margin-top: 40px; display: flex; flex-direction: column; gap: 8px; }
+
+  .step {
+    position: relative; display: grid; grid-template-columns: 28px 1fr; gap: 14px;
+    padding: 18px 18px 18px 8px; border-radius: 12px; border: 1px solid transparent; transition: background 120ms, border-color 120ms;
+  }
+  .step:hover { background: rgba(255,255,255,0.01); border-color: var(--line-soft); }
+  .step.dragging { opacity: 0.4; }
+  .step.drag-over::before {
+    content: ""; position: absolute; left: 8px; right: 8px; top: -4px; height: 2px;
+    background: var(--accent); border-radius: 999px;
+  }
+
+  /* Left rail */
+  .rail { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px; }
+  .drag-handle {
+    width: 24px; height: 18px; border-radius: 5px; color: var(--text-4);
+    display: grid; place-items: center; cursor: grab; opacity: 0; transition: opacity 120ms, color 120ms, background 120ms;
+  }
+  .step:hover .drag-handle { opacity: 1; }
+  .drag-handle:hover { color: var(--text-1); background: var(--bg-3); }
+  .drag-handle:active { cursor: grabbing; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 7px; background: var(--bg-2); border: 1px solid var(--line);
+    display: grid; place-items: center; font-family: var(--font-mono); font-size: 12px; color: var(--text-2);
+    font-weight: 500; flex-shrink: 0;
+  }
+
+  .step-body { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+  .shot {
+    position: relative; border-radius: 10px; overflow: hidden; background: #0D0D0D;
+    border: 1px solid var(--line); aspect-ratio: 16 / 9; color: var(--accent);
+  }
+  .shot img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .shot .shot-overlay {
+    position: absolute; top: 8px; left: 10px; display: flex; align-items: center; gap: 6px;
+    background: rgba(10,10,10,0.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--line); border-radius: 5px; padding: 3px 7px 3px 6px;
+    font-family: var(--font-mono); font-size: 10px; color: var(--text-2); letter-spacing: 0.03em;
+  }
+  .shot .shot-overlay svg { color: var(--text-3); width: 10px; height: 10px; }
+
+  .step-desc-wrap { position: relative; }
+  .step-desc {
+    width: 100%; background: transparent; border: 1px solid transparent; border-radius: 8px;
+    padding: 10px 12px; font-family: inherit; font-size: 15px; line-height: 1.55; color: var(--text-1);
+    letter-spacing: -0.005em; outline: none; min-height: 44px; overflow: hidden;
+    transition: background 120ms, border-color 120ms; margin: 0; display: block;
+  }
+  .step-desc:hover { background: var(--bg-2); border-color: var(--line-soft); }
+  .step-desc:focus { background: var(--bg-2); border-color: var(--accent-line); }
+  .step-desc::placeholder { color: var(--text-3); }
+
+  .step-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 12px; }
+  .step-url {
+    display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .step-url svg { color: var(--text-4); flex-shrink: 0; }
+
+  .step-tools {
+    position: absolute; top: 14px; right: 14px; display: flex; gap: 4px; opacity: 0; transition: opacity 120ms;
+  }
+  .step:hover .step-tools { opacity: 1; }
+  .step-tools .ico-btn {
+    width: 28px; height: 28px; background: rgba(15,15,15,0.7);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-color: var(--line);
+  }
+  .step-tools .ico-btn.danger:hover {
+    color: var(--red); border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08);
+  }
+
+  .insert-gap { height: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+  .insert-btn {
+    position: absolute; height: 22px; padding: 0 10px; border-radius: 999px; background: var(--bg-2);
+    border: 1px solid var(--line); color: var(--text-2); font-size: 11px; font-family: var(--font-mono);
+    letter-spacing: 0.04em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer; opacity: 0; transition: opacity 120ms, color 120ms, border-color 120ms;
+  }
+  .insert-gap:hover .insert-btn { opacity: 1; }
+  .insert-btn:hover { color: var(--text-1); border-color: var(--accent-line); }
+
+  .add-row { margin-top: 28px; display: flex; justify-content: center; }
+  .add-step {
+    height: 40px; padding: 0 16px; border-radius: 9px; background: var(--bg-2); border: 1px dashed var(--line);
+    color: var(--text-2); font-size: 13px; display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer; transition: color 120ms, border-color 120ms, background 120ms;
+  }
+  .add-step:hover { color: var(--text-1); border-color: #383838; background: var(--bg-3); }
+
+  /* ============== EMPTY STATE ============== */
+  .empty-state {
+    max-width: 560px; margin: 80px auto 0; text-align: center; padding: 64px 40px;
+    border: 1px dashed var(--line); border-radius: 16px; background: var(--bg-1);
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  .empty-glyph {
+    width: 96px; height: 96px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line);
+    display: grid; place-items: center; position: relative; color: var(--accent);
+  }
+  .empty-glyph::before {
+    content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent 0 8px, rgba(255,255,255,0.015) 8px 9px);
+    border-radius: 16px; pointer-events: none;
+  }
+  .empty-state h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+  .empty-state p { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.55; max-width: 380px; }
+  .empty-state .empty-actions { display: flex; gap: 10px; margin-top: 6px; }
+
+  body[data-empty="true"] .has-steps { display: none; }
+  body[data-empty="false"] .empty-state { display: none; }
+
+  /* Toasts */
+  .toast-host {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 200;
+    display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none;
+  }
+  .toast {
+    background: var(--bg-2); border: 1px solid var(--line); color: var(--text-1); padding: 10px 14px;
+    border-radius: 9px; font-size: 13px; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.7);
+    display: flex; align-items: center; gap: 10px; pointer-events: auto; animation: slideUp 200ms ease;
+  }
+  .toast .pip { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+  .toast button {
+    background: transparent; border: none; color: var(--accent); cursor: pointer;
+    font-family: inherit; font-size: 12.5px; font-weight: 500; padding: 0; margin-left: 4px;
+  }
+  .toast button:hover { text-decoration: underline; }
+  @keyframes slideUp {
+    from { transform: translateY(6px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @media (max-width: 700px) {
+    .topbar-inner { padding: 0 16px; grid-template-columns: 1fr auto; }
+    .save-status { display: none; }
+    .doc { padding: 32px 16px 120px; }
+    .title-input { font-size: 28px; }
+  }
+</style>
 </head>
-<body>
+<body data-empty="false">
 
-  <div id="loading">Loading guide…</div>
-
-  <div class="container" id="app" style="display:none">
-    
-    <div class="header">
-      <div class="input-group">
-        <label class="label">Guide Title</label>
-        <input type="text" class="title-input" id="guideTitleInput" placeholder="Enter guide title...">
-      </div>
-      <div class="input-group">
-        <label class="label">Description (Optional)</label>
-        <textarea class="desc-input" id="guideDescInput" placeholder="Briefly explain what this guide covers..."></textarea>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="crumbs">
+        <a>LocalGuide</a>
+        <span class="sep">/</span>
+        <span class="current">Editor</span>
       </div>
     </div>
 
-    <div class="steps-container" id="stepsContainer">
-      <!-- Steps will be injected here by JS -->
+    <div class="save-status" id="saveStatus">
+      <span class="pip"></span>
+      <span class="label"></span>
+      <span class="when" id="saveWhen">· just now</span>
     </div>
 
-    <div class="actions-bar">
-      <div class="save-status" id="saveStatus">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-        All changes saved
+    <div class="actions">
+      <button class="btn btn-ghost" id="previewBtn" title="Preview">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 7s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="1.8"/>
+        </svg>
+        Preview
+      </button>
+
+      <div class="dropdown" id="exportDropdown">
+        <button class="btn btn-primary" id="exportBtn">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 8.5v1.5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8.5"/>
+            <path d="M6.5 1.5v6.5M4 5.5l2.5 2.5L9 5.5"/>
+          </svg>
+          Export
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-2px;opacity:.7;"><path d="M2 4l3 3 3-3"/></svg>
+        </button>
+        <div class="dropdown-menu" id="exportMenu" role="menu">
+          <!-- Dynamic export items injected here -->
+        </div>
       </div>
-      <div class="actions-right" id="exportActions">
-        <!-- Export buttons injected by JS -->
-      </div>
+
+    </div>
+  </div>
+</header>
+
+<main class="doc">
+  <div class="has-steps">
+    <div class="doc-eyebrow">
+      <span class="pip"></span>
+      <span>Guide</span>
+      <span class="dot"></span>
+      <span class="stat"><b id="stepCountBadge">0</b> Steps</span>
     </div>
 
+    <input class="title-input" id="titleInput" type="text" placeholder="Untitled Guide" aria-label="Guide title" />
+
+    <textarea class="desc-input" id="descInput" placeholder="Add a short description for the Reader — what this Guide covers, who it's for, anything they need before starting." aria-label="Guide description" rows="2"></textarea>
+
+    <div class="doc-meta">
+      <span class="chip">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5.5h8M5.5 1.5l4 4-4 4"/></svg>
+        Auto-saved locally
+      </span>
+    </div>
+
+    <section class="steps" id="stepsList">
+      <!-- Steps injected here -->
+    </section>
+
+    <!--
+    <div class="add-row">
+      <button class="add-step" id="addStepBtn">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.5 2v9M2 6.5h9"/></svg>
+        Add step manually
+      </button>
+    </div>
+    -->
   </div>
 
-  <script src="html2pdf.bundle.min.js"></script>
-  <script src="docx.bundle.min.js"></script>
-  <script src="editor.js" type="module"></script>
+  <div class="empty-state">
+    <div class="empty-glyph">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <rect x="6" y="6" width="28" height="28" rx="5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 3"/>
+        <path d="M16 13 L16 27 L20 23.5 L22.5 28.5 L24.5 27.5 L22 22.5 L27 22.5 Z" fill="currentColor" stroke="#0F0F0F" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <h2>No Steps in this Guide</h2>
+      <p>Every Step you delete is gone for good. To pick this Guide back up, start a new Recording Session — or open another from your Guide History.</p>
+    </div>
+    <div class="empty-actions">
+      <!-- Empty actions can be handled or removed for now -->
+    </div>
+  </div>
+</main>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="html2pdf.bundle.min.js"></script>
+<script src="docx.bundle.min.js"></script>
+<script src="editor.js" type="module"></script>
 </body>
 </html>
