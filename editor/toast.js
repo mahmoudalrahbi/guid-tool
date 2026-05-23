@@ -1,0 +1,20 @@
+export function showToast(toastHost, msg, config, undoFn = null) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span class="pip"></span><span>${msg}</span>`;
+  if (undoFn) {
+    const b = document.createElement('button');
+    b.textContent = 'Undo';
+    b.onclick = () => { undoFn(); t.remove(); };
+    t.appendChild(b);
+  }
+  toastHost.appendChild(t);
+  setTimeout(() => {
+    if (t.removed) return;
+    t.style.transition = `opacity ${config.UI_TOAST_ANIMATION_MS}ms`;
+    t.style.opacity = '0';
+    setTimeout(() => {
+      if (!t.removed) t.remove();
+    }, config.UI_TOAST_FADEOUT_MS);
+  }, config.EDITOR.UNDO_TIMEOUT_MS);
+}
