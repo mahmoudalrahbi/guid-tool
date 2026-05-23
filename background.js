@@ -1,7 +1,7 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("config.js", "messages.js", "db-core.js", "utils.js");
+importScripts("config.js", "messages.js", "db-core.js", "utils.js", "annotator.js", "describer.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === MSG_START_RECORDING) {
@@ -130,7 +130,7 @@ async function handleClickCaptured(metadata) {
     id: `step-${session.guideId}-${stepCount}`,
     guideId: session.guideId,
     order: stepCount,
-    description: ruleBasedDescription(metadata),
+    description: await describe(metadata),
     screenshotBlob: blob,
     createdAt: Date.now(),
     url: session.lastUrl,
@@ -159,32 +159,4 @@ async function handleCompleteCapture() {
   return { ok: true };
 }
 
-async function annotateScreenshot(dataUrl, x, y, dpr) {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  const bitmap = await createImageBitmap(blob);
 
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(bitmap, 0, 0);
-
-  // Scale click coords to device pixel ratio (screenshots are at devicePixelRatio)
-  const cx = x * dpr;
-  const cy = y * dpr;
-  const r = CONFIG.ANNOTATION.RADIUS_PX * dpr;
-
-  ctx.strokeStyle = CONFIG.ANNOTATION.COLOR;
-  ctx.lineWidth = CONFIG.ANNOTATION.STROKE_WIDTH_PX * dpr;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-  ctx.stroke();
-
-  const outBlob = await canvas.convertToBlob({ type: `image/${CONFIG.CAPTURE_FORMAT}`, quality: CONFIG.ANNOTATED_QUALITY });
-  return blobToDataUrl(outBlob);
-}
-
-function ruleBasedDescription(meta) {
-  const label = meta.label || meta.text || meta.tag;
-  const role = meta.role ? ` (${meta.role})` : "";
-  return `Click "${label}"${role}`;
-}
