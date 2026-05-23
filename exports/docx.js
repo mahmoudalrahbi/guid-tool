@@ -3,28 +3,56 @@ export async function exportToDocx(guide, steps) {
 
   const children = [];
 
+  // Cover Page: Title
   children.push(
     new Paragraph({
       text: guide.title || "Untitled Guide",
       heading: HeadingLevel.HEADING_1,
+      spacing: { after: 200 },
     })
   );
 
+  // Cover Page: Description
   if (guide.description) {
     children.push(
       new Paragraph({
         text: guide.description,
+        spacing: { after: 400 },
       })
     );
   }
 
-  for (const step of steps) {
-    children.push(
-      new Paragraph({
-        text: `Step ${step.order}`,
-        heading: HeadingLevel.HEADING_2,
-      })
-    );
+  // Cover Page: Footer
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "Made with LocalGuide",
+          italics: true,
+          color: "A1A1AA",
+        })
+      ],
+      spacing: { before: 800 },
+    })
+  );
+
+  // Steps
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+
+    // Heading for the step
+    const headingOpts = {
+      text: `STEP ${step.order.toString().padStart(2, '0')}`,
+      heading: HeadingLevel.HEADING_2,
+      keepNext: true, // Keep heading with image
+    };
+    
+    // Start steps on a new page
+    if (i === 0) {
+      headingOpts.pageBreakBefore = true;
+    }
+
+    children.push(new Paragraph(headingOpts));
 
     const arrayBuffer = await step.screenshotBlob.arrayBuffer();
     const dims = await getImageDimensions(step.screenshotBlob);
@@ -48,6 +76,8 @@ export async function exportToDocx(guide, steps) {
             },
           }),
         ],
+        keepNext: !!step.description, // Keep image with description if it exists
+        spacing: { after: 200 },
       })
     );
 
@@ -55,6 +85,7 @@ export async function exportToDocx(guide, steps) {
       children.push(
         new Paragraph({
           text: step.description,
+          spacing: { after: 400 },
         })
       );
     }
