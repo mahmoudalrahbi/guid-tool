@@ -1,0 +1,93 @@
+:root {
+  --bg-0: #0A0A0A;
+  --bg-1: #0F0F0F;
+  --bg-2: #1A1A1A;
+  --bg-3: #242424;
+  --bg-4: #2E2E2E;
+  --line: #2A2A2A;
+  --line-soft: #1F1F1F;
+  --text-1: #ECECEC;
+  --text-2: #9A9A9A;
+  --text-3: #5E5E5E;
+  --text-4: #3F3F3F;
+  --amber: #F59E0B;
+  --amber-soft: rgba(245, 158, 11, 0.14);
+  --amber-line: rgba(245, 158, 11, 0.32);
+  --red: #EF4444;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-1);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 80ms ease;
+  user-select: none;
+}
+.btn:active { transform: translateY(0.5px); }
+
+.btn-primary {
+  background: var(--amber);
+  color: #1a1300;
+  font-weight: 600;
+}
+.btn-primary:hover { background: #FFB224; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--bg-3);
+  color: var(--text-1);
+  border-color: var(--line);
+}
+.btn-secondary:hover {
+  background: var(--bg-4);
+  border-color: #383838;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-2);
+  border-color: var(--line);
+}
+.btn-ghost:hover { color: var(--text-1); border-color: #383838; }
+
+.btn-full { flex: 1; width: 100%; }
+
+.ico-btn {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-2);
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.ico-btn:hover {
+  background: var(--bg-3);
+  color: var(--text-1);
+}
+.ico-btn svg { display: block; }
