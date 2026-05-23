@@ -1,44 +1,56 @@
-# Implementation Plan: Extract annotator.js and describer.js (Slice 18)
+# Implementation Plan: Decompose editor.js (Slice 19)
 
 ## Goal
-Decouple the screenshot annotation and step description logic from `background.js` by extracting them into dedicated modules (`annotator.js` and `describer.js`). Establish an adapter seam for future AI description integrations.
+Decompose the monolithic `editor.js` file into smaller, modular components to improve maintainability. We will extract UI and behavior logic (toast notifications, drag-and-drop, step cards, and export menu) into pure-ish ES modules inside a new `editor/` directory, leaving `editor.js` as the central state manager and orchestrator.
+
+## User Review Required
+- Is the new `editor/` subdirectory approach acceptable for organizing these components, or should they be kept at the root alongside `editor.js`?
+- I plan to use a callback injection pattern (e.g., passing `onDelete` to the step card component) to avoid circular dependencies between components and the state in `editor.js`. Let me know if you prefer a different state management approach (like an EventBus or dedicated state module).
 
 ## Proposed Changes
 
-### 1. Extract `annotator.js`
-#### [NEW] `annotator.js`
-- Extract the `annotateScreenshot` function from `background.js`.
-- It will remain a global function to be loaded via `importScripts()`.
-- It will continue to use the globally available `CONFIG` and `blobToDataUrl` (from `config.js` and `utils.js`).
+We will create a new directory `editor/` to house the extracted components.
 
-### 2. Extract `describer.js`
-#### [NEW] `describer.js`
-- Extract the `ruleBasedDescription` function from `background.js`.
-- Create a new primary function: `describe(metadata, aiProvider = null)`.
-- The `describe` function will use the adapter seam pattern:
-  - If `aiProvider` is provided, it can be used to generate the description (async).
-  - If no provider is given (or as a baseline/fallback), it returns the result of `ruleBasedDescription(metadata)`.
+### 1. Extract Toast Component
+#### [NEW] `editor/toast.js`
+- Move the `showToast` function here.
+- Refactor to accept `toastHost` as a parameter to decouple it from the global DOM variable.
+- `export function showToast(toastHost, msg, undoFn = null)`
 
-### 3. Update `background.js`
-#### [MODIFY] `background.js`
-- Add `"annotator.js"` and `"describer.js"` to the `importScripts()` call.
-- Remove the local implementations of `annotateScreenshot` and `ruleBasedDescription`.
-- Update the call site in `handleClickCaptured` to use `await describe(metadata)` (since it may become async if an AI provider is used) instead of `ruleBasedDescription(metadata)`.
+### 2. Extract Export Menu Component
+#### [NEW] `editor/export-menu.js`
+- Move `renderExportMenu` and the export dropdown toggling logic here.
+- Decouple from `currentGuide` and `currentSteps` by accepting an `onExport(formatId)` callback.
+- `export function setupExportMenu(exportMenu, exportDropdown, exportBtn, formats, onExport)`
 
-### 4. Create ADR-0007
-#### [NEW] `docs/adr/0007-describer-adapter-seam.md`
-- As requested in the handoff document, create this Architectural Decision Record.
-- **Context**: We are building an opt-in AI description feature with multiple potential providers (Gemini OAuth, BYOK OpenAI, etc.). We need to keep `background.js` clean and prevent provider-specific logic from polluting the main service worker.
-- **Decision**: Inject the AI provider into `describe()` as an argument (`describe(metadata, aiProvider)`), rather than having `describer.js` or `background.js` directly import or manage provider logic.
-- **Consequences**: This decision is load-bearing for the AI descriptions workstream. It creates a clear boundary (adapter seam), makes testing easy via mock providers, and ensures the core architecture doesn't change when adding new AI services.
+### 3. Extract Step Card Component
+#### [NEW] `editor/step-card.js`
+- Move `createStepElement`, `autoSize`, and `renumber` functions here.
+- Decouple `createStepElement` from global state by accepting callbacks.
+- `export function createStepElement(step, { onDescChange, onDelete, onUndoDelete })`
+- `export function renumber(stepsList, stepCountBadge)`
+
+### 4. Extract Drag and Drop Component
+#### [NEW] `editor/drag-drop.js`
+- Move `attachDragAndDrop`, `autoScroll`, and drag-related event listeners here.
+- Decouple from state synchronization by accepting an `onReorder` callback triggered on successful drop.
+- `export function attachDragAndDrop(stepsList, onReorder)`
+
+### 5. Update main orchestrator
+#### [MODIFY] `editor.js`
+- Act as the central orchestrator and state manager.
+- Import components from the `./editor/` directory.
+- Pass the necessary DOM elements and callbacks to the imported functions to maintain state (e.g., updating `currentSteps`, calling `flashSaving()`, and `deleteStep()`).
 
 ## Verification Plan
 
 ### Automated Tests
-- Since Slice #14 established the test runner pattern, write unit tests for `describer.js` to ensure `ruleBasedDescription` returns correct strings and `describe` handles the adapter seam properly.
-- If possible in the test environment, write tests for `annotator.js` (though `OffscreenCanvas` may require mocking or environment specific setup).
+- As per the handoff document, TDD should be used where applicable. We can write unit tests for the extracted pure-ish components (e.g., `toast.js`, `step-card.js`) using the test runner established in Slice 14, mocking DOM elements where necessary.
 
 ### Manual Verification
-- Load the extension in Chrome (`/Users/macbook/Desktop/guid-tool-slice-18`).
-- Run a Recording Session.
-- Verify that steps are captured with correctly annotated screenshots and rule-based descriptions.
+- Open the Editor view (`editor.html`) in the browser.
+- Verify that steps render correctly with titles, descriptions, and annotated screenshots.
+- Test editing a step description and confirm it triggers an auto-save.
+- Test deleting a step, confirming the toast appears, and test the "Undo" functionality.
+- Test dragging and dropping steps to reorder them, confirming the numbers update and state is saved.
+- Test opening the Export menu and triggering an export.
