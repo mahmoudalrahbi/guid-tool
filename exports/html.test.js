@@ -22,6 +22,7 @@ test("exportToHtml uses injected deps and formats correctly", async () => {
 
   let escapeCount = 0;
   let blobCount = 0;
+  let compositeCount = 0;
 
   const deps = {
     escapeHtml: (str) => {
@@ -32,6 +33,10 @@ test("exportToHtml uses injected deps and formats correctly", async () => {
       blobCount++;
       const text = await blob.text();
       return `data:image/png;base64,${text}`;
+    },
+    composite: async (step) => {
+      compositeCount++;
+      return step.screenshotBlob;
     }
   };
 
@@ -41,6 +46,7 @@ test("exportToHtml uses injected deps and formats correctly", async () => {
   assert.strictEqual(blob.type, "text/html");
   
   // Verify deps were used
+  assert.strictEqual(compositeCount, 2);
   assert.strictEqual(escapeCount, 4); // title, description, and 2 step descriptions
   assert.strictEqual(blobCount, 2);
 
