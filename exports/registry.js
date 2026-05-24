@@ -2,6 +2,7 @@ import { exportToHtml } from "./html.js";
 import { exportToPdf } from "./pdf.js";
 import { exportToMarkdown } from "./markdown.js";
 import { exportToDocx } from "./docx.js";
+import { composite } from "../editor/compositor.js";
 
 const formats = {
   html: {
@@ -47,7 +48,8 @@ export async function exportGuide(formatId, guide, steps) {
     docx: globalThis.docx,
     document: globalThis.document,
     URL: globalThis.URL,
-    Image: globalThis.Image
+    Image: globalThis.Image,
+    composite
   };
   
   const blob = await format.exportFn(guide, steps, deps);

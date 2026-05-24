@@ -54,8 +54,10 @@ export async function exportToDocx(guide, steps, deps) {
 
     children.push(new Paragraph(headingOpts));
 
-    const arrayBuffer = await step.screenshotBlob.arrayBuffer();
-    const dims = await getImageDimensions(step.screenshotBlob, deps);
+    // Get composited blob (annotations rendered in) then read as arrayBuffer for ImageRun
+    const compositedBlob = await deps.composite(step);
+    const arrayBuffer = await compositedBlob.arrayBuffer();
+    const dims = await getImageDimensions(compositedBlob, deps);
     
     const maxWidth = 600;
     let width = dims.width;

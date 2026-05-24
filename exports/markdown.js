@@ -1,7 +1,8 @@
 export async function exportToMarkdown(guide, steps, deps) {
   const stepsWithDataUrls = await Promise.all(
     steps.map(async (step) => {
-      const dataUrl = await deps.blobToDataUrl(step.screenshotBlob);
+      const compositedBlob = await deps.composite(step);
+      const dataUrl = await deps.blobToDataUrl(compositedBlob);
       return { ...step, dataUrl };
     })
   );
