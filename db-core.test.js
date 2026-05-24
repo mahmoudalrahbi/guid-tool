@@ -108,4 +108,58 @@ test('getAllGuidesWithStepCounts returns correct step count and lastActivityAt, 
   assert.equal(results[2].stepCount, 1);
   assert.equal(results[2].lastActivityAt, 1000);
 });
+test('upgrades from v1 to v2 by adding stepType: "legacy" to existing steps', async () => {
+  // 1. Setup v1 DB and insert legacy data
+  await new Promise((resolve, reject) => {
+    const req = indexedDB.open(CONFIG.DB.NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      db.createObjectStore(CONFIG.STORE_GUIDES, { keyPath: "id" });
+      const store = db.createObjectStore(CONFIG.STORE_STEPS, { keyPath: "id" });
+      store.createIndex("guideId", "guideId", { unique: false });
+    };
+    req.onsuccess = (e) => {
+      const db = e.target.result;
+      const tx = db.transaction(CONFIG.STORE_STEPS, "readwrite");
+      tx.objectStore(CONFIG.STORE_STEPS).put({ id: 's-1', guideId: 'g-1', text: 'Legacy step 1' });
+      tx.objectStore(CONFIG.STORE_STEPS).put({ id: 's-2', guideId: 'g-1', text: 'Legacy step 2' });
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+    };
+    req.onerror = () => reject(req.error);
+  });
+
+  // 2. Trigger upgrade by changing config
+  const originalVersion = CONFIG.DB.VERSION;
+  CONFIG.DB.VERSION = 2;
+  
+  try {
+    const db = await dbCore.openDB();
+    // In fake-indexeddb (and real), db must be closed if we want to cleanly re-open sometimes, but fake IDB handles it.
+    
+    // We can just use the db connection returned to read the values
+    const steps = await new Promise((resolve, reject) => {
+      const tx = db.transaction(CONFIG.STORE_STEPS, "readonly");
+      const getReq = tx.objectStore(CONFIG.STORE_STEPS).getAll();
+      getReq.onsuccess = () => {
+        resolve(getReq.result);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+
+    assert.equal(steps.length, 2);
+    // order might not be guaranteed by getAll, so let's sort them by id
+    steps.sort((a, b) => a.id.localeCompare(b.id));
+    assert.equal(steps[0].stepType, 'legacy');
+    assert.equal(steps[1].stepType, 'legacy');
+    assert.equal(steps[0].text, 'Legacy step 1'); // Ensure other data is untouched
+    
+    db.close();
+  } finally {
+    CONFIG.DB.VERSION = originalVersion;
+  }
+});
+
 });

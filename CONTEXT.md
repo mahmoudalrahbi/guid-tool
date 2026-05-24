@@ -17,7 +17,7 @@ The active period during which the extension is capturing Steps. Starts when the
 _Avoid_: Session, capture session, recording
 
 **Annotated Screenshot**:
-A full-viewport screenshot with a colored highlight circle drawn over the clicked element, showing the Reader exactly where to act.
+A full-viewport screenshot combined with its annotation data (click coordinates, radius, and color) that together identify where the Reader should act. The composed image with the highlight circle drawn over the click point is an output of this data, not the canonical form. The Editor renders the annotation as an overlay on the raw screenshot; export composites them into a final image.
 _Avoid_: Screenshot, snapshot, image (those miss the highlight annotation which is load-bearing)
 
 **Popup**:
