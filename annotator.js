@@ -1,9 +1,9 @@
 // annotator.js - Handles drawing highlights onto captured screenshots
 
-async function annotate(dataUrl, x, y, dpr, opts = {}) {
-  const radius = opts.radius || CONFIG.ANNOTATION.RADIUS_PX;
+async function annotate(dataUrl, annotation, opts = {}) {
+  const radius = annotation.radius || CONFIG.ANNOTATION.RADIUS_PX;
   const strokeWidth = opts.strokeWidth || CONFIG.ANNOTATION.STROKE_WIDTH_PX;
-  const color = opts.color || CONFIG.ANNOTATION.COLOR;
+  const color = annotation.color || CONFIG.ANNOTATION.COLOR;
   const quality = opts.quality || CONFIG.ANNOTATED_QUALITY;
 
   const res = await fetch(dataUrl);
@@ -15,12 +15,12 @@ async function annotate(dataUrl, x, y, dpr, opts = {}) {
   ctx.drawImage(bitmap, 0, 0);
 
   // Scale click coords to device pixel ratio (screenshots are at devicePixelRatio)
-  const cx = x * dpr;
-  const cy = y * dpr;
-  const r = radius * dpr;
+  const cx = annotation.x * annotation.dpr;
+  const cy = annotation.y * annotation.dpr;
+  const r = radius * annotation.dpr;
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = strokeWidth * dpr;
+  ctx.lineWidth = strokeWidth * annotation.dpr;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, 2 * Math.PI);
   ctx.stroke();

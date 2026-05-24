@@ -1,7 +1,7 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("config.js", "messages.js", "db-core.js", "utils.js", "annotator.js", "describer.js");
+importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === MSG_START_RECORDING) {
@@ -57,8 +57,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         id: `step-${currentSession.guideId}-${stepCount}`,
         guideId: currentSession.guideId,
         order: stepCount,
+        stepType: "navigation",
         description: `Navigated to ${newUrl}`,
         screenshotBlob: blob,
+        annotation: null,
         createdAt: Date.now(),
         url: newUrl,
       };
@@ -119,19 +121,25 @@ async function handleClickCaptured(metadata) {
     return; // Tab not capturable (e.g. chrome:// page)
   }
 
-  // Draw highlight circle over click coordinates using OffscreenCanvas
-  const annotated = await annotate(screenshotDataUrl, metadata.x, metadata.y, metadata.dpr);
-
   // Convert data URL → Blob for compact IndexedDB storage
-  const blob = dataUrlToBlob(annotated);
+  const blob = dataUrlToBlob(screenshotDataUrl);
 
   const stepCount = session.stepCount + 1;
   const step = {
     id: `step-${session.guideId}-${stepCount}`,
     guideId: session.guideId,
     order: stepCount,
+    stepType: "click",
     description: await describe(metadata),
     screenshotBlob: blob,
+    annotation: {
+      x: metadata.x,
+      y: metadata.y,
+      dpr: metadata.dpr,
+      radius: CONFIG.ANNOTATION.RADIUS_PX,
+      color: CONFIG.ANNOTATION.COLOR,
+      strokeWidth: CONFIG.ANNOTATION.STROKE_WIDTH_PX
+    },
     createdAt: Date.now(),
     url: session.lastUrl,
   };
@@ -140,7 +148,7 @@ async function handleClickCaptured(metadata) {
   await chrome.storage.local.set({ session: { ...session, stepCount } });
 
   // Notify side panel
-  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl: annotated } }).catch(() => {});
+  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
 }
 
 async function handleCompleteCapture() {

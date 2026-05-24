@@ -35,12 +35,12 @@ test.beforeEach(() => {
 });
 
 test('annotate: returns a JPEG data URL', async () => {
-  const result = await annotator.annotate('data:image/png;base64,mock', 10, 10, 1);
+  const result = await annotator.annotate('data:image/png;base64,mock', { x: 10, y: 10, dpr: 1 });
   assert.ok(result.startsWith('data:image/jpeg;base64'));
 });
 
 test('annotate: draws circle at correct coordinates relative to click position', async () => {
-  await annotator.annotate('data:image/png;base64,mock', 50, 60, 1);
+  await annotator.annotate('data:image/png;base64,mock', { x: 50, y: 60, dpr: 1 });
   const arcCall = ctxCalls.find(c => c.method === 'arc');
   assert.ok(arcCall, 'arc method should be called');
   // arc(x, y, radius, startAngle, endAngle)
@@ -50,7 +50,7 @@ test('annotate: draws circle at correct coordinates relative to click position',
 });
 
 test('annotate: circle radius and coordinates scale correctly with device pixel ratio', async () => {
-  await annotator.annotate('data:image/png;base64,mock', 50, 60, 2);
+  await annotator.annotate('data:image/png;base64,mock', { x: 50, y: 60, dpr: 2 });
   const arcCall = ctxCalls.find(c => c.method === 'arc');
   assert.ok(arcCall, 'arc method should be called');
   
@@ -69,7 +69,7 @@ test('annotate: handles missing blobToDataUrl dependency gracefully', async () =
   
   try {
     await assert.rejects(
-      annotator.annotate('data:image/png;base64,mock', 10, 10, 1),
+      annotator.annotate('data:image/png;base64,mock', { x: 10, y: 10, dpr: 1 }),
       /blobToDataUrl is not defined/
     );
   } finally {
