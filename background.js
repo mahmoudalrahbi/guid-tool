@@ -137,7 +137,8 @@ async function handleClickCaptured(metadata) {
       y: metadata.y,
       dpr: metadata.dpr,
       radius: CONFIG.ANNOTATION.RADIUS_PX,
-      color: CONFIG.ANNOTATION.COLOR
+      color: CONFIG.ANNOTATION.COLOR,
+      strokeWidth: CONFIG.ANNOTATION.STROKE_WIDTH_PX
     },
     createdAt: Date.now(),
     url: session.lastUrl,
