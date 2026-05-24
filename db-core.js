@@ -14,6 +14,26 @@ function openDB() {
           store.createIndex("guideId", "guideId", { unique: false });
         }
       }
+
+      if (oldVersion < 2) {
+        if (db.objectStoreNames.contains(CONFIG.STORE_STEPS)) {
+          const tx = e.target.transaction;
+          const store = tx.objectStore(CONFIG.STORE_STEPS);
+          const cursorReq = store.openCursor();
+          
+          cursorReq.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const step = cursor.value;
+              if (!step.stepType) {
+                step.stepType = "legacy";
+                cursor.update(step);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);

@@ -4,7 +4,7 @@ const CONFIG = require('./config.js');
 
 test('CONFIG object contains expected structure and values', () => {
   assert.equal(CONFIG.DB.NAME, 'localguide');
-  assert.equal(CONFIG.DB.VERSION, 1);
+  assert.equal(CONFIG.DB.VERSION, 2);
   assert.equal(CONFIG.STORE_GUIDES, 'guides');
   assert.equal(CONFIG.STORE_STEPS, 'steps');
 

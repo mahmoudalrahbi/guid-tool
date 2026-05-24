@@ -1,7 +1,7 @@
 const CONFIG = {
   DB: {
     NAME: "localguide",
-    VERSION: 1, // WARNING: If incremented, you must add migration logic to onupgradeneeded in db-core.js
+    VERSION: 2, // WARNING: If incremented, you must add migration logic to onupgradeneeded in db-core.js
   },
   STORE_GUIDES: "guides",
   STORE_STEPS: "steps",

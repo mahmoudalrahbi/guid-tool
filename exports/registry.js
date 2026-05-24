@@ -6,25 +6,25 @@ import { exportToDocx } from "./docx.js";
 const formats = {
   html: {
     id: "html",
-    name: "Export as HTML",
+    name: "HTML",
     extension: "html",
     exportFn: exportToHtml
   },
   pdf: {
     id: "pdf",
-    name: "Export as PDF",
+    name: "PDF",
     extension: "pdf",
     exportFn: exportToPdf
   },
   markdown: {
     id: "markdown",
-    name: "Export as Markdown",
+    name: "Markdown",
     extension: "md",
     exportFn: exportToMarkdown
   },
   docx: {
     id: "docx",
-    name: "Export as DOCX",
+    name: "DOCX",
     extension: "docx",
     exportFn: exportToDocx
   }
