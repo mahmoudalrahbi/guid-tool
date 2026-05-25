@@ -5,3 +5,10 @@ coverage/
 .env
 .pnpm-store/
 .DS_Store
+
+# Scratch and review artifacts (not part of the codebase)
+scratch*.js
+review*.md
+pr_diff.txt
+test_output.txt
+implementation_plan.md

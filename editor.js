@@ -107,7 +107,8 @@ function renderSteps() {
     step.order = index + 1;
     const card = createStepElement(step, {
       onDescChange: scheduleSave,
-      onDelete: (cardEl) => handleDeleteStep(cardEl, step)
+      onDelete: (cardEl) => handleDeleteStep(cardEl, step),
+      onAnnotationChange: scheduleSave
     });
     stepsList.appendChild(card);
     
