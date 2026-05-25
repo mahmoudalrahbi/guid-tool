@@ -20,6 +20,7 @@ test("exportToPdf uses injected html2pdf and formatting options", async () => {
   let calledOpts = null;
   let pdfTextCalled = false;
   let passedElement = null;
+  let compositeCount = 0;
 
   const deps = {
     document: {
@@ -37,6 +38,10 @@ test("exportToPdf uses injected html2pdf and formatting options", async () => {
       }
     },
     blobToDataUrl: async (b) => "data:image/png;base64,fake",
+    composite: async (step) => {
+      compositeCount++;
+      return step.screenshotBlob;
+    },
     html2pdf: () => {
       const worker = {
         set: (opt) => { calledOpts = opt; return worker; },
@@ -63,6 +68,7 @@ test("exportToPdf uses injected html2pdf and formatting options", async () => {
   const blob = await exportToPdf(guide, steps, deps);
   
   assert.strictEqual(blob.type, "application/pdf");
+  assert.strictEqual(compositeCount, 1, "composite() was not called for the step");
   assert.ok(calledOpts, "html2pdf.set() was not called");
   assert.strictEqual(calledOpts.margin, 0.5);
   assert.strictEqual(calledOpts.filename, "Test-PDF-Guide.pdf");

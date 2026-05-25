@@ -45,6 +45,7 @@ test("exportToDocx uses injected docx and formats correctly", async () => {
       createObjectURL: () => "fake-url",
       revokeObjectURL: () => {}
     },
+    composite: async (step) => step.screenshotBlob,
     Image: class {
       constructor() {
         setTimeout(() => {

@@ -88,8 +88,9 @@ export async function exportToPdf(guide, steps, deps) {
 
     stepEl.appendChild(stepHeader);
 
-    // Image
-    const imgUrl = await deps.blobToDataUrl(step.screenshotBlob);
+    // Image — get composited blob (annotations rendered in)
+    const compositedBlob = await deps.composite(step);
+    const imgUrl = await deps.blobToDataUrl(compositedBlob);
     const imgEl = deps.document.createElement("img");
     imgEl.src = imgUrl;
     imgEl.style.width = "100%";

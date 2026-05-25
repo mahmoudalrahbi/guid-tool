@@ -21,12 +21,17 @@ test("exportToMarkdown uses injected deps and formats correctly", async () => {
   ];
 
   let blobCount = 0;
+  let compositeCount = 0;
 
   const deps = {
     blobToDataUrl: async (blob) => {
       blobCount++;
       const text = await blob.text();
       return `data:image/png;base64,${text}`;
+    },
+    composite: async (step) => {
+      compositeCount++;
+      return step.screenshotBlob;
     }
   };
 
@@ -36,6 +41,7 @@ test("exportToMarkdown uses injected deps and formats correctly", async () => {
   assert.strictEqual(blob.type, "text/markdown");
   
   // Verify deps were used
+  assert.strictEqual(compositeCount, 2);
   assert.strictEqual(blobCount, 2);
 
   // Verify content formatting
