@@ -102,3 +102,13 @@ test('composite: throws for unknown stepType without blob', async () => {
   const step = { stepType: 'broken' };
   await assert.rejects(() => composite(step), /unsupported stepType/);
 });
+
+test('composite: returns screenshotBlob for "click" stepType when annotation is null', async () => {
+  const { composite } = await import('./compositor.js');
+
+  const mockBlob = new Blob(['mock-click-no-ann'], { type: 'image/jpeg' });
+  const step = { stepType: 'click', screenshotBlob: mockBlob, annotation: null };
+
+  const result = await composite(step);
+  assert.equal(result, mockBlob);
+});

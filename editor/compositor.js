@@ -4,6 +4,7 @@ export async function composite(step) {
   }
 
   if (step.stepType === 'click') {
+    if (!step.annotation) return step.screenshotBlob;
     const { x, y, dpr, radius, color, strokeWidth } = step.annotation;
     const bitmap = await createImageBitmap(step.screenshotBlob);
 
