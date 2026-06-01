@@ -53,6 +53,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
       const blob = dataUrlToBlob(screenshotDataUrl);
       const stepCount = currentSession.stepCount + 1;
+      const now = Date.now();
       const step = {
         id: `step-${currentSession.guideId}-${stepCount}`,
         guideId: currentSession.guideId,
@@ -60,15 +61,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         stepType: "navigation",
         description: `Navigated to ${newUrl}`,
         screenshotBlob: blob,
-        annotation: null,
-        createdAt: Date.now(),
         url: newUrl,
+        createdAt: now,
+        updatedAt: now,
       };
 
       await saveStep(step);
       await chrome.storage.local.set({ session: { ...currentSession, stepCount } });
 
-      chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
+      chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: toStepMessage(step, screenshotDataUrl) }).catch(() => {});
     }, CONFIG.UI_NAV_DELAY_MS);
   }
 });
@@ -125,6 +126,7 @@ async function handleClickCaptured(metadata) {
   const blob = dataUrlToBlob(screenshotDataUrl);
 
   const stepCount = session.stepCount + 1;
+  const now = Date.now();
   const step = {
     id: `step-${session.guideId}-${stepCount}`,
     guideId: session.guideId,
@@ -140,15 +142,16 @@ async function handleClickCaptured(metadata) {
       color: CONFIG.ANNOTATION.COLOR,
       strokeWidth: CONFIG.ANNOTATION.STROKE_WIDTH_PX
     },
-    createdAt: Date.now(),
     url: session.lastUrl,
+    createdAt: now,
+    updatedAt: now,
   };
 
   await saveStep(step);
   await chrome.storage.local.set({ session: { ...session, stepCount } });
 
   // Notify side panel
-  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
+  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: toStepMessage(step, screenshotDataUrl) }).catch(() => {});
 }
 
 async function handleCompleteCapture() {
