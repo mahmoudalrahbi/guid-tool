@@ -6,6 +6,7 @@ import { setupExportMenu } from "./editor/export-menu.js";
 import { createStepElement, renumber, autoSize } from "./editor/step-card.js";
 import { createDragDrop } from "./editor/drag-drop.js";
 import { createAutoSave } from "./editor/auto-save.js";
+import { createEditorSession } from "./editor/editor-session.js";
 
 const params = new URLSearchParams(location.search);
 const guideId = params.get("guideId");
@@ -25,25 +26,29 @@ let currentGuide = null;
 let currentSteps = [];
 let scheduleSave = null;
 let currentDragDrop = null;
+let editorSession = null;
 
 async function init() {
   if (!guideId) return;
 
-  const [guide, steps] = await Promise.all([
-    getGuide(guideId),
-    getStepsForGuide(guideId),
-  ]);
+  editorSession = createEditorSession(
+    { getGuide, getStepsForGuide, saveGuide, saveStep },
+    { debounceMs: CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS }
+  );
+  await editorSession.load(guideId);
 
+  const guide = editorSession.getGuide();
   if (!guide) return;
 
   currentGuide = guide;
-  currentSteps = steps;
+  currentSteps = editorSession.getSteps();
 
   scheduleSave = createAutoSave(
     async () => {
-      currentGuide.updatedAt = Date.now();
-      await saveGuide(currentGuide);
-      await Promise.all(currentSteps.map(step => saveStep(step)));
+      const g = editorSession.getGuide();
+      g.updatedAt = Date.now();
+      await saveGuide(g);
+      await Promise.all(editorSession.getSteps().map(step => saveStep(step)));
     },
     {
       debounceMs: CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS,
@@ -61,12 +66,12 @@ async function init() {
 
   titleInput.value = guide.title || "";
   descInput.value = guide.description || "";
-  
+
   autoSize(descInput);
-  
+
   // Setup Meta Chips
   const dateStr = `Recorded ${window.formatDate(guide.createdAt || Date.now())}`;
-  
+
   const dateChip = document.getElementById("guideDateChip");
   if (dateChip) dateChip.querySelector("span").textContent = dateStr;
 
@@ -82,12 +87,12 @@ async function init() {
   }
 
   titleInput.addEventListener("input", () => {
-    currentGuide.title = titleInput.value;
+    editorSession.updateTitle(titleInput.value);
     scheduleSave();
   });
 
   descInput.addEventListener("input", () => {
-    currentGuide.description = descInput.value;
+    editorSession.updateDescription(descInput.value);
     autoSize(descInput);
     scheduleSave();
   });
