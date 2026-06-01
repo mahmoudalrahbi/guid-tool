@@ -81,6 +81,76 @@ test('EditorSession: updateStepDescription schedules a save', async () => {
   assert.equal(db.saved.steps[0].description, 'Updated');
 });
 
+test('EditorSession: reorder(0, 2) moves first step to last', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  session.reorder(0, 2);
+  const steps = session.getSteps();
+  assert.deepEqual(steps.map(s => s.id), ['s2', 's3', 's1']);
+});
+
+test('EditorSession: reorder(2, 0) moves last step to first', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  session.reorder(2, 0);
+  const steps = session.getSteps();
+  assert.deepEqual(steps.map(s => s.id), ['s3', 's1', 's2']);
+});
+
+test('EditorSession: reorder(1, 3) moves middle step to last in a 4-step list', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+    { id: 's4', order: 4, description: 'D' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  session.reorder(1, 3);
+  const steps = session.getSteps();
+  assert.deepEqual(steps.map(s => s.id), ['s1', 's3', 's4', 's2']);
+});
+
+test('EditorSession: order values are contiguous after reorder', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  session.reorder(0, 2);
+  const steps = session.getSteps();
+  assert.deepEqual(steps.map(s => s.order), [1, 2, 3]);
+});
+
+test('EditorSession: reorder schedules a save', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+  ]);
+  const session = createEditorSession(db, { debounceMs: 0 });
+  await session.load('g1');
+  session.reorder(0, 1);
+  await new Promise(r => setTimeout(r, 20));
+  assert.ok(db.saved.guide !== null, 'saveGuide should have been called after reorder');
+});
+
 test('EditorSession: deleteStep removes step from getSteps()', async () => {
   const { createEditorSession } = await import('./editor-session.js');
   const db = makeDb({ id: 'g1', title: 'G' }, [

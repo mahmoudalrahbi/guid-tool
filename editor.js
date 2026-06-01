@@ -131,9 +131,11 @@ function renderSteps() {
     document,
     window,
     config: CONFIG,
-    onReorder: () => {
+    onReorder: (fromIndex, toIndex) => {
+      editorSession.reorder(fromIndex, toIndex);
+      currentSteps = editorSession.getSteps();
       renumber(stepsList, stepCountBadge);
-      syncOrderAndSave();
+      if (scheduleSave) scheduleSave();
     }
   });
 }

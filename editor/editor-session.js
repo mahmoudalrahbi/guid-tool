@@ -34,6 +34,12 @@ export function createEditorSession(db, { debounceMs = 300 } = {}) {
         scheduleSave();
       }
     },
+    reorder(fromIndex, toIndex) {
+      const [item] = steps.splice(fromIndex, 1);
+      steps.splice(toIndex, 0, item);
+      steps.forEach((s, i) => { s.order = i + 1; });
+      scheduleSave();
+    },
     undoDelete(token) {
       steps.splice(token.originalIndex, 0, token.step);
       steps.forEach((s, i) => { s.order = i + 1; });

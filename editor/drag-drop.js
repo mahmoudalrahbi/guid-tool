@@ -80,13 +80,17 @@ export function createDragDrop(stepsList, options) {
     const step = e.target.closest('.step');
     if (!step || !dragSrc || dragSrc === step) return;
     step.classList.remove('drag-over');
-    
+
+    const stepCards = [...stepsList.querySelectorAll('.step')];
+    const fromIndex = stepCards.indexOf(dragSrc);
+    const toIndex = stepCards.indexOf(step);
+
     const all = [...stepsList.children];
     const srcIdx = all.indexOf(dragSrc);
     const tgtIdx = all.indexOf(step);
-    
+
     const srcGap = dragSrc.nextElementSibling?.classList.contains('insert-gap') ? dragSrc.nextElementSibling : null;
-    
+
     if (srcIdx < tgtIdx) {
       step.parentNode.insertBefore(dragSrc, step.nextElementSibling);
       if (srcGap) step.parentNode.insertBefore(srcGap, dragSrc.nextElementSibling);
@@ -94,8 +98,8 @@ export function createDragDrop(stepsList, options) {
       step.parentNode.insertBefore(dragSrc, step);
       if (srcGap) step.parentNode.insertBefore(srcGap, dragSrc.nextElementSibling);
     }
-    
-    if (onReorder) onReorder();
+
+    if (onReorder) onReorder(fromIndex, toIndex);
   }
 
   documentObj.addEventListener('dragover', handleDocumentDragOver);
