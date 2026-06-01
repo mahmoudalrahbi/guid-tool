@@ -7,21 +7,16 @@ test("exportToMarkdown uses injected deps and formats correctly", async () => {
     title: "My Markdown Guide",
     description: "Guide description here",
   };
-  const steps = [
-    {
-      order: 1,
-      description: "First step description",
-      screenshotBlob: new Blob(["fake1"]),
-    },
-    {
-      order: 2,
-      description: "Second step description",
-      screenshotBlob: new Blob(["fake2"]),
-    }
-  ];
-
   let blobCount = 0;
   let compositeCount = 0;
+  function makeStep(order, description, blobData) {
+    const blob = new Blob([blobData]);
+    return { order, description, screenshotBlob: blob, composite: async () => { compositeCount++; return blob; } };
+  }
+  const steps = [
+    makeStep(1, "First step description", "fake1"),
+    makeStep(2, "Second step description", "fake2"),
+  ];
 
   const deps = {
     blobToDataUrl: async (blob) => {
@@ -29,10 +24,6 @@ test("exportToMarkdown uses injected deps and formats correctly", async () => {
       const text = await blob.text();
       return `data:image/png;base64,${text}`;
     },
-    composite: async (step) => {
-      compositeCount++;
-      return step.screenshotBlob;
-    }
   };
 
   const blob = await exportToMarkdown(guide, steps, deps);

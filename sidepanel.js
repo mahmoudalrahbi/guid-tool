@@ -1,3 +1,5 @@
+import { compositeThumbnail } from './editor/annotation-renderer.js';
+
 const stepsList = document.getElementById("stepsList");
 const emptyState = document.getElementById("emptyState");
 const completeBtn = document.getElementById("completeBtn");
@@ -140,58 +142,12 @@ function addStepToList(step) {
   // Composite the thumbnail after appending so the img element exists in the DOM
   const img = article.querySelector(`#thumb-${step.order}`);
   if (step.stepType === "click" && step.annotation) {
-    compositeClickThumbnail(step.screenshotDataUrl, step.annotation).then(dataUrl => {
+    compositeThumbnail(step.screenshotDataUrl, step.annotation).then(dataUrl => {
       img.src = dataUrl;
     }).catch(() => {
-      // Fall back to raw screenshot if compositing fails
       img.src = step.screenshotDataUrl;
     });
   } else {
     img.src = step.screenshotDataUrl;
   }
-}
-
-/**
- * Draws the annotation circle over a raw screenshot using a <canvas> element
- * and returns a JPEG data URL of the composited result.
- *
- * @param {string} screenshotDataUrl - Raw screenshot as a data URL.
- * @param {object} annotation - Annotation descriptor from background.js:
- *   { x, y, dpr, radius, color, strokeWidth }
- * @returns {Promise<string>} JPEG data URL with the circle drawn.
- */
-async function compositeClickThumbnail(screenshotDataUrl, annotation) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-
-      const dpr = annotation.dpr || 1;
-      const cx = annotation.x * dpr;
-      const cy = annotation.y * dpr;
-      const radius = (annotation.radius || CONFIG.ANNOTATION.RADIUS_PX) * dpr;
-      const strokeWidth = (annotation.strokeWidth || CONFIG.ANNOTATION.STROKE_WIDTH_PX) * dpr;
-      const color = annotation.color || CONFIG.ANNOTATION.COLOR;
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = strokeWidth;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-      ctx.stroke();
-
-      resolve(canvas.toDataURL(`image/${CONFIG.CAPTURE_FORMAT}`, CONFIG.ANNOTATED_QUALITY));
-    };
-    img.onerror = reject;
-    img.src = screenshotDataUrl;
-  });
-}
-
-// CJS export for node:test runner. Ignored in browser context.
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { compositeClickThumbnail };
 }

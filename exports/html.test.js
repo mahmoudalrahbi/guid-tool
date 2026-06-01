@@ -7,22 +7,18 @@ test("exportToHtml uses injected deps and formats correctly", async () => {
     title: "My <Awesome> Guide",
     description: "A & B",
   };
+  let compositeCount = 0;
+  function makeStep(order, description, blobData) {
+    const blob = new Blob([blobData]);
+    return { order, description, screenshotBlob: blob, composite: async () => { compositeCount++; return blob; } };
+  }
   const steps = [
-    {
-      order: 1,
-      description: "Click \"Here\"",
-      screenshotBlob: new Blob(["fake1"]),
-    },
-    {
-      order: 2,
-      description: "Done",
-      screenshotBlob: new Blob(["fake2"]),
-    }
+    makeStep(1, "Click \"Here\"", "fake1"),
+    makeStep(2, "Done", "fake2"),
   ];
 
   let escapeCount = 0;
   let blobCount = 0;
-  let compositeCount = 0;
 
   const deps = {
     escapeHtml: (str) => {
@@ -34,17 +30,13 @@ test("exportToHtml uses injected deps and formats correctly", async () => {
       const text = await blob.text();
       return `data:image/png;base64,${text}`;
     },
-    composite: async (step) => {
-      compositeCount++;
-      return step.screenshotBlob;
-    }
   };
 
   const blob = await exportToHtml(guide, steps, deps);
   const htmlContent = await blob.text();
 
   assert.strictEqual(blob.type, "text/html");
-  
+
   // Verify deps were used
   assert.strictEqual(compositeCount, 2);
   assert.strictEqual(escapeCount, 4); // title, description, and 2 step descriptions

@@ -3,6 +3,10 @@
 
 importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js");
 
+// Holds the AI provider for the current Recording Session.
+// Loaded once at session start; null means rule-based descriptions only.
+var activeProvider = null;
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === MSG_START_RECORDING) {
     handleStartRecording(msg.tabId).then(sendResponse);
@@ -53,6 +57,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
       const blob = dataUrlToBlob(screenshotDataUrl);
       const stepCount = currentSession.stepCount + 1;
+      const now = Date.now();
       const step = {
         id: `step-${currentSession.guideId}-${stepCount}`,
         guideId: currentSession.guideId,
@@ -60,15 +65,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         stepType: "navigation",
         description: `Navigated to ${newUrl}`,
         screenshotBlob: blob,
-        annotation: null,
-        createdAt: Date.now(),
         url: newUrl,
+        createdAt: now,
+        updatedAt: now,
       };
 
       await saveStep(step);
       await chrome.storage.local.set({ session: { ...currentSession, stepCount } });
 
-      chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
+      chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: toStepMessage(step, screenshotDataUrl) }).catch(() => {});
     }, CONFIG.UI_NAV_DELAY_MS);
   }
 });
@@ -86,6 +91,9 @@ async function handleStartRecording(tabId) {
   });
 
   await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now(), url: tab.url });
+
+  // Load AI provider once per session — null means rule-based descriptions only
+  activeProvider = await loadActiveProvider();
 
   // Tell content script on that tab to start listening
   await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: false }).catch(() => {});
@@ -125,12 +133,13 @@ async function handleClickCaptured(metadata) {
   const blob = dataUrlToBlob(screenshotDataUrl);
 
   const stepCount = session.stepCount + 1;
+  const now = Date.now();
   const step = {
     id: `step-${session.guideId}-${stepCount}`,
     guideId: session.guideId,
     order: stepCount,
     stepType: "click",
-    description: await describe(metadata),
+    description: await describe(metadata, activeProvider),
     screenshotBlob: blob,
     annotation: {
       x: metadata.x,
@@ -140,15 +149,16 @@ async function handleClickCaptured(metadata) {
       color: CONFIG.ANNOTATION.COLOR,
       strokeWidth: CONFIG.ANNOTATION.STROKE_WIDTH_PX
     },
-    createdAt: Date.now(),
     url: session.lastUrl,
+    createdAt: now,
+    updatedAt: now,
   };
 
   await saveStep(step);
   await chrome.storage.local.set({ session: { ...session, stepCount } });
 
   // Notify side panel
-  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: { ...step, screenshotBlob: undefined, screenshotDataUrl } }).catch(() => {});
+  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: toStepMessage(step, screenshotDataUrl) }).catch(() => {});
 }
 
 async function handleCompleteCapture() {

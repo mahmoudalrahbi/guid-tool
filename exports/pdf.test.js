@@ -7,20 +7,20 @@ test("exportToPdf uses injected html2pdf and formatting options", async () => {
     title: "Test PDF Guide",
     description: "PDF Desc",
   };
+  let compositeCount = 0;
+  const stepBlob = new Blob(["fake"]);
   const steps = [
     {
       order: 1,
       description: "Step 1 text",
-      screenshotBlob: new Blob(["fake"]),
+      screenshotBlob: stepBlob,
+      composite: async () => { compositeCount++; return stepBlob; },
     }
   ];
-
-
 
   let calledOpts = null;
   let pdfTextCalled = false;
   let passedElement = null;
-  let compositeCount = 0;
 
   const deps = {
     document: {
@@ -38,10 +38,6 @@ test("exportToPdf uses injected html2pdf and formatting options", async () => {
       }
     },
     blobToDataUrl: async (b) => "data:image/png;base64,fake",
-    composite: async (step) => {
-      compositeCount++;
-      return step.screenshotBlob;
-    },
     html2pdf: () => {
       const worker = {
         set: (opt) => { calledOpts = opt; return worker; },

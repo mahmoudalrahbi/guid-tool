@@ -29,6 +29,10 @@ function createMockElement(className = '') {
       if (sel === '.step' && this.classList.contains('step')) return this;
       return null;
     },
+    querySelectorAll: function(sel) {
+      if (sel === '.step') return (this.children || []).filter(c => c.classList && c.classList.contains('step'));
+      return [];
+    },
     parentNode: {
       insertBefore: function(newNode, referenceNode) {
         // Simple mock

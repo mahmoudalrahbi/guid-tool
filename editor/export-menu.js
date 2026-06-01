@@ -32,9 +32,9 @@ export function setupExportMenu(exportMenu, exportDropdown, exportBtn, formats, 
       <div class="meta">.${format.id}</div>
     `;
     
-    item.addEventListener("click", () => {
+    item.addEventListener("click", async () => {
       exportDropdown.classList.remove("open");
-      onExport(format.id);
+      await onExport(format.id);
     });
     
     exportMenu.appendChild(item);

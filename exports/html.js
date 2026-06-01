@@ -1,7 +1,7 @@
 export async function exportToHtml(guide, steps, deps) {
   const stepsWithDataUrls = await Promise.all(
     steps.map(async (step) => {
-      const compositedBlob = await deps.composite(step);
+      const compositedBlob = await step.composite();
       const dataUrl = await deps.blobToDataUrl(compositedBlob);
       return { ...step, dataUrl };
     })
