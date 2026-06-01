@@ -81,6 +81,56 @@ test('EditorSession: updateStepDescription schedules a save', async () => {
   assert.equal(db.saved.steps[0].description, 'Updated');
 });
 
+test('EditorSession: isPending() returns true after updateTitle before debounce fires', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, []);
+  const session = createEditorSession(db, { debounceMs: 10000 });
+  await session.load('g1');
+  session.updateTitle('Changed');
+  assert.equal(session.isPending(), true);
+  session.cancel(); // clean up timer
+});
+
+test('EditorSession: flush() persists immediately and isPending() returns false', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, []);
+  const session = createEditorSession(db, { debounceMs: 10000 });
+  await session.load('g1');
+  session.updateTitle('Flushed');
+  assert.equal(session.isPending(), true);
+  await session.flush();
+  assert.equal(session.isPending(), false);
+  assert.ok(db.saved.guide !== null, 'saveGuide should have been called by flush');
+  assert.equal(db.saved.guide.title, 'Flushed');
+});
+
+test('EditorSession: cancel() clears pending flag and no db write occurs', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, []);
+  const session = createEditorSession(db, { debounceMs: 10000 });
+  await session.load('g1');
+  session.updateTitle('Will be cancelled');
+  session.cancel();
+  assert.equal(session.isPending(), false);
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(db.saved.guide, null, 'no db write should occur after cancel');
+});
+
+test('EditorSession: flush() rejects if db.saveGuide throws', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = {
+    getGuide: async () => ({ id: 'g1', title: 'G' }),
+    getStepsForGuide: async () => [],
+    saveGuide: async () => { throw new Error('disk full'); },
+    saveStep: async () => {},
+    saved: { guide: null, steps: [] },
+  };
+  const session = createEditorSession(db, { debounceMs: 10000 });
+  await session.load('g1');
+  session.updateTitle('Fail');
+  await assert.rejects(() => session.flush(), /disk full/);
+});
+
 test('EditorSession: reorder(0, 2) moves first step to last', async () => {
   const { createEditorSession } = await import('./editor-session.js');
   const db = makeDb({ id: 'g1', title: 'G' }, [

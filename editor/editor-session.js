@@ -53,6 +53,23 @@ export function createEditorSession(db, { debounceMs = 300 } = {}) {
       scheduleSave();
       return { step, originalIndex };
     },
+    isPending() {
+      return saveTimeout !== null;
+    },
+    cancel() {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        saveTimeout = null;
+      }
+    },
+    async flush() {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        saveTimeout = null;
+      }
+      await db.saveGuide(guide);
+      await Promise.all(steps.map(s => db.saveStep(s)));
+    },
     getGuide() {
       return { ...guide };
     },

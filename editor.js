@@ -97,8 +97,14 @@ async function init() {
     scheduleSave();
   });
 
-  setupExportMenu(exportMenu, exportDropdown, exportBtn, getExportFormats(), (formatId) => {
-    exportGuide(formatId, currentGuide, currentSteps);
+  setupExportMenu(exportMenu, exportDropdown, exportBtn, getExportFormats(), async (formatId) => {
+    try {
+      await editorSession.flush();
+    } catch (e) {
+      showToast(toastHost, 'Export failed — unsaved changes could not be written', CONFIG);
+      return;
+    }
+    exportGuide(formatId, editorSession.getGuide(), editorSession.getSteps());
     showToast(toastHost, `Exported as ${formatId.toUpperCase()}`, CONFIG);
   });
   
