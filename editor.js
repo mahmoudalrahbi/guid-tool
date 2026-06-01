@@ -142,23 +142,28 @@ function handleDeleteStep(card, step) {
   const parent = card.parentNode;
   const gap = card.nextElementSibling?.classList.contains('insert-gap') ? card.nextElementSibling : null;
   const placeholderNext = gap ? gap.nextElementSibling : card.nextElementSibling;
-  
+
   card.remove();
   if (gap) gap.remove();
-  
+
+  const token = editorSession.deleteStep(step.id);
+  currentSteps = editorSession.getSteps();
   renumber(stepsList, stepCountBadge);
-  syncOrderAndSave();
-  
+  if (scheduleSave) scheduleSave();
+
   showToast(toastHost, 'Step deleted', CONFIG, async () => {
     // Undo
     if (placeholderNext) parent.insertBefore(card, placeholderNext); else parent.appendChild(card);
     if (gap) parent.insertBefore(gap, card.nextSibling);
-    
+
+    editorSession.undoDelete(token);
+    currentSteps = editorSession.getSteps();
+
     const stepDesc = card.querySelector(".step-desc");
     if (stepDesc) setTimeout(() => autoSize(stepDesc), 0);
-    
+
     renumber(stepsList, stepCountBadge);
-    syncOrderAndSave();
+    if (scheduleSave) scheduleSave();
   });
 }
 

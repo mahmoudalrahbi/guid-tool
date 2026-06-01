@@ -81,6 +81,92 @@ test('EditorSession: updateStepDescription schedules a save', async () => {
   assert.equal(db.saved.steps[0].description, 'Updated');
 });
 
+test('EditorSession: deleteStep removes step from getSteps()', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  session.deleteStep('s1');
+  const steps = session.getSteps();
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].id, 's2');
+});
+
+test('EditorSession: deleteStep returns token { step, originalIndex }', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  const token = session.deleteStep('s1');
+  assert.equal(token.step.id, 's1');
+  assert.equal(token.originalIndex, 0);
+});
+
+test('EditorSession: order values are contiguous after deleteStep', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  session.deleteStep('s1');
+  const steps = session.getSteps();
+  assert.deepEqual(steps.map(s => s.order), [1, 2]);
+  assert.equal(steps[0].id, 's2');
+  assert.equal(steps[1].id, 's3');
+});
+
+test('EditorSession: undoDelete re-inserts step at original index', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  const token = session.deleteStep('s2');
+  session.undoDelete(token);
+  const steps = session.getSteps();
+  assert.equal(steps.length, 3);
+  assert.equal(steps[1].id, 's2');
+});
+
+test('EditorSession: order values are contiguous after undoDelete', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+    { id: 's2', order: 2, description: 'B' },
+    { id: 's3', order: 3, description: 'C' },
+  ]);
+  const session = createEditorSession(db);
+  await session.load('g1');
+  const token = session.deleteStep('s2');
+  session.undoDelete(token);
+  const steps = session.getSteps();
+  assert.deepEqual(steps.map(s => s.order), [1, 2, 3]);
+});
+
+test('EditorSession: deleteStep schedules a save', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A' },
+  ]);
+  const session = createEditorSession(db, { debounceMs: 0 });
+  await session.load('g1');
+  session.deleteStep('s1');
+  await new Promise(r => setTimeout(r, 20));
+  assert.ok(db.saved.guide !== null, 'saveGuide should have been called after deleteStep');
+});
+
 test('EditorSession: getGuide returns a shallow copy (mutations do not affect internal state)', async () => {
   const { createEditorSession } = await import('./editor-session.js');
   const db = makeDb({ id: 'g1', title: 'Original' }, []);

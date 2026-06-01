@@ -34,6 +34,19 @@ export function createEditorSession(db, { debounceMs = 300 } = {}) {
         scheduleSave();
       }
     },
+    undoDelete(token) {
+      steps.splice(token.originalIndex, 0, token.step);
+      steps.forEach((s, i) => { s.order = i + 1; });
+      scheduleSave();
+    },
+    deleteStep(stepId) {
+      const originalIndex = steps.findIndex(s => s.id === stepId);
+      if (originalIndex === -1) return null;
+      const [step] = steps.splice(originalIndex, 1);
+      steps.forEach((s, i) => { s.order = i + 1; });
+      scheduleSave();
+      return { step, originalIndex };
+    },
     getGuide() {
       return { ...guide };
     },
