@@ -3,6 +3,10 @@
 
 importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js");
 
+// Holds the AI provider for the current Recording Session.
+// Loaded once at session start; null means rule-based descriptions only.
+var activeProvider = null;
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === MSG_START_RECORDING) {
     handleStartRecording(msg.tabId).then(sendResponse);
@@ -88,6 +92,9 @@ async function handleStartRecording(tabId) {
 
   await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now(), url: tab.url });
 
+  // Load AI provider once per session — null means rule-based descriptions only
+  activeProvider = await loadActiveProvider();
+
   // Tell content script on that tab to start listening
   await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: false }).catch(() => {});
 
@@ -132,7 +139,7 @@ async function handleClickCaptured(metadata) {
     guideId: session.guideId,
     order: stepCount,
     stepType: "click",
-    description: await describe(metadata),
+    description: await describe(metadata, activeProvider),
     screenshotBlob: blob,
     annotation: {
       x: metadata.x,
