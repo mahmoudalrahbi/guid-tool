@@ -40,7 +40,9 @@ export async function exportGuide(formatId, guide, steps) {
   if (!format) {
     throw new Error(`Unknown export format: ${formatId}`);
   }
-  
+
+  const exportSteps = steps.map(step => globalThis.toExportStep(step, composite));
+
   const deps = {
     blobToDataUrl: globalThis.blobToDataUrl,
     escapeHtml: globalThis.escapeHtml,
@@ -49,10 +51,9 @@ export async function exportGuide(formatId, guide, steps) {
     document: globalThis.document,
     URL: globalThis.URL,
     Image: globalThis.Image,
-    composite
   };
-  
-  const blob = await format.exportFn(guide, steps, deps);
+
+  const blob = await format.exportFn(guide, exportSteps, deps);
   
   // Download the blob
   const url = URL.createObjectURL(blob);

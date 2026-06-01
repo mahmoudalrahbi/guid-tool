@@ -86,6 +86,19 @@ function toStepMessage(step, dataUrl) {
   return msg;
 }
 
+/**
+ * Wraps a validated StoredStep for use inside export format modules.
+ * The returned ExportStep has a `composite()` method that calls `compositor(storedStep)`.
+ * Throws if storedStep fails StoredStep validation.
+ */
+function toExportStep(storedStep, compositor) {
+  var validated = createStoredStep(storedStep);
+  validated.composite = function() {
+    return compositor(validated);
+  };
+  return validated;
+}
+
 // CJS export for node:test runner. Ignored in browser context.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -101,5 +114,6 @@ if (typeof module !== 'undefined' && module.exports) {
     MSG_COMPLETE_CAPTURE,
     createStoredStep,
     toStepMessage,
+    toExportStep,
   };
 }

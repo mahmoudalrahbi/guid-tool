@@ -9,11 +9,13 @@ test("exportToDocx uses injected docx and formats correctly", async () => {
     title: "Test DOCX Guide",
     description: "DOCX Desc",
   };
+  const stepBlob = new Blob(["fake-img"]);
   const steps = [
     {
       order: 1,
       description: "Step 1 text",
-      screenshotBlob: new Blob(["fake-img"]),
+      screenshotBlob: stepBlob,
+      composite: async () => stepBlob,
     }
   ];
 
@@ -45,7 +47,6 @@ test("exportToDocx uses injected docx and formats correctly", async () => {
       createObjectURL: () => "fake-url",
       revokeObjectURL: () => {}
     },
-    composite: async (step) => step.screenshotBlob,
     Image: class {
       constructor() {
         setTimeout(() => {

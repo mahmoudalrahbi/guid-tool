@@ -55,7 +55,7 @@ export async function exportToDocx(guide, steps, deps) {
     children.push(new Paragraph(headingOpts));
 
     // Get composited blob (annotations rendered in) then read as arrayBuffer for ImageRun
-    const compositedBlob = await deps.composite(step);
+    const compositedBlob = await step.composite();
     const arrayBuffer = await compositedBlob.arrayBuffer();
     const dims = await getImageDimensions(compositedBlob, deps);
     

@@ -116,3 +116,35 @@ test('toStepMessage: output preserves all other StoredStep fields', () => {
   assert.equal(msg.description, step.description);
   assert.deepEqual(msg.annotation, step.annotation);
 });
+
+// --- toExportStep ---
+
+const { toExportStep } = messages;
+
+test('toExportStep: returns object with composite as a function', () => {
+  const step = createStoredStep(validClickFields());
+  const compositor = async (s) => s.screenshotBlob;
+  const exportStep = toExportStep(step, compositor);
+  assert.equal(typeof exportStep.composite, 'function');
+});
+
+test('toExportStep: throws when storedStep is missing a required field', () => {
+  const fields = validClickFields();
+  delete fields.id;
+  const compositor = async (s) => s.screenshotBlob;
+  assert.throws(() => toExportStep(fields, compositor), /id/i);
+});
+
+test('toExportStep: composite() calls the compositor with the stored step and returns the result', async () => {
+  const fields = validClickFields();
+  fields.screenshotBlob = Buffer.from('img-data');
+  const step = createStoredStep(fields);
+  let receivedStep = null;
+  const mockBlob = Buffer.from('composited');
+  const compositor = async (s) => { receivedStep = s; return mockBlob; };
+  const exportStep = toExportStep(step, compositor);
+  const result = await exportStep.composite();
+  assert.equal(result, mockBlob);
+  assert.ok(receivedStep !== null);
+  assert.equal(receivedStep.id, step.id);
+});
