@@ -1,11 +1,22 @@
 // Background service worker — orchestrates Recording Sessions.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js");
+importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js", "step-capture.js");
 
-// Holds the AI provider for the current Recording Session.
-// Loaded once at session start; null means rule-based descriptions only.
-var activeProvider = null;
+var stepCapture = null;
+
+function buildStepCapture() {
+  return createStepCapture({
+    screenshot: () => chrome.tabs.captureVisibleTab(null, { format: CONFIG.CAPTURE_FORMAT, quality: CONFIG.CAPTURE_QUALITY }),
+    // Reload provider from storage on every call — survives SW restart without silently degrading.
+    describer: async (metadata) => {
+      var provider = await loadActiveProvider();
+      return describe(metadata, provider);
+    },
+    db: { saveStep },
+    broadcast: (msg) => chrome.runtime.sendMessage(msg).catch(() => {}),
+  });
+}
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === MSG_START_RECORDING) {
@@ -48,32 +59,17 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       const { session: currentSession } = await chrome.storage.local.get("session");
       if (!currentSession?.active) return;
 
-      let screenshotDataUrl;
+      if (!stepCapture) stepCapture = buildStepCapture();
       try {
-        screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: CONFIG.CAPTURE_FORMAT, quality: CONFIG.CAPTURE_QUALITY });
+        const { step } = await stepCapture.captureNavigation(newUrl, {
+          tabId: currentSession.tabId,
+          guideId: currentSession.guideId,
+          stepCount: currentSession.stepCount,
+        });
+        await chrome.storage.local.set({ session: { ...currentSession, stepCount: step.order } });
       } catch {
-        return; // Tab not capturable
+        // Tab not capturable or db write failed — step silently dropped for navigation
       }
-
-      const blob = dataUrlToBlob(screenshotDataUrl);
-      const stepCount = currentSession.stepCount + 1;
-      const now = Date.now();
-      const step = {
-        id: `step-${currentSession.guideId}-${stepCount}`,
-        guideId: currentSession.guideId,
-        order: stepCount,
-        stepType: "navigation",
-        description: `Navigated to ${newUrl}`,
-        screenshotBlob: blob,
-        url: newUrl,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await saveStep(step);
-      await chrome.storage.local.set({ session: { ...currentSession, stepCount } });
-
-      chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: toStepMessage(step, screenshotDataUrl) }).catch(() => {});
     }, CONFIG.UI_NAV_DELAY_MS);
   }
 });
@@ -92,8 +88,7 @@ async function handleStartRecording(tabId) {
 
   await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now(), url: tab.url });
 
-  // Load AI provider once per session — null means rule-based descriptions only
-  activeProvider = await loadActiveProvider();
+  stepCapture = buildStepCapture();
 
   // Tell content script on that tab to start listening
   await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: false }).catch(() => {});
@@ -121,44 +116,18 @@ async function handleClickCaptured(metadata) {
   const { session } = await chrome.storage.local.get("session");
   if (!session?.active || session.paused) return;
 
-  // Capture screenshot before anything else — timing is critical
-  let screenshotDataUrl;
+  if (!stepCapture) stepCapture = buildStepCapture();
   try {
-    screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: CONFIG.CAPTURE_FORMAT, quality: CONFIG.CAPTURE_QUALITY });
+    const { step } = await stepCapture.captureClick(metadata, {
+      tabId: session.tabId,
+      guideId: session.guideId,
+      stepCount: session.stepCount,
+      lastUrl: session.lastUrl,
+    });
+    await chrome.storage.local.set({ session: { ...session, stepCount: step.order } });
   } catch {
-    return; // Tab not capturable (e.g. chrome:// page)
+    // Tab not capturable or db write failed
   }
-
-  // Convert data URL → Blob for compact IndexedDB storage
-  const blob = dataUrlToBlob(screenshotDataUrl);
-
-  const stepCount = session.stepCount + 1;
-  const now = Date.now();
-  const step = {
-    id: `step-${session.guideId}-${stepCount}`,
-    guideId: session.guideId,
-    order: stepCount,
-    stepType: "click",
-    description: await describe(metadata, activeProvider),
-    screenshotBlob: blob,
-    annotation: {
-      x: metadata.x,
-      y: metadata.y,
-      dpr: metadata.dpr,
-      radius: CONFIG.ANNOTATION.RADIUS_PX,
-      color: CONFIG.ANNOTATION.COLOR,
-      strokeWidth: CONFIG.ANNOTATION.STROKE_WIDTH_PX
-    },
-    url: session.lastUrl,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await saveStep(step);
-  await chrome.storage.local.set({ session: { ...session, stepCount } });
-
-  // Notify side panel
-  chrome.runtime.sendMessage({ type: MSG_STEP_ADDED, step: toStepMessage(step, screenshotDataUrl) }).catch(() => {});
 }
 
 async function handleCompleteCapture() {
@@ -176,5 +145,3 @@ async function handleCompleteCapture() {
 
   return { ok: true };
 }
-
-
