@@ -1,19 +1,11 @@
 export async function exportToHtml(guide, steps, deps) {
-  const stepsWithDataUrls = await Promise.all(
-    steps.map(async (step) => {
-      const compositedBlob = await step.composite();
-      const dataUrl = await deps.blobToDataUrl(compositedBlob);
-      return { ...step, dataUrl };
-    })
-  );
-
-  const stepsHtml = stepsWithDataUrls
+  const stepsHtml = steps
     .map(
       (step) => `
     <div class="step">
       <div class="step-num">${step.order}</div>
       <div class="step-body">
-        <div class="shot"><img src="${step.dataUrl}" alt="Step ${step.order}" /></div>
+        <div class="shot"><img src="${step.imageDataUrl}" alt="Step ${step.order}" /></div>
         <p>${deps.escapeHtml(step.description)}</p>
       </div>
     </div>`

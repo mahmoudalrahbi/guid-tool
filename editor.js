@@ -5,7 +5,6 @@ import { showToast } from "./editor/toast.js";
 import { setupExportMenu } from "./editor/export-menu.js";
 import { createStepElement, renumber, autoSize } from "./editor/step-card.js";
 import { createDragDrop } from "./editor/drag-drop.js";
-import { createAutoSave } from "./editor/auto-save.js";
 import { createEditorSession } from "./editor/editor-session.js";
 
 const params = new URLSearchParams(location.search);
@@ -22,9 +21,7 @@ const exportBtn = document.getElementById("exportBtn");
 const exportMenu = document.getElementById("exportMenu");
 const toastHost = document.getElementById("toastHost");
 
-let currentGuide = null;
 let currentSteps = [];
-let scheduleSave = null;
 let currentDragDrop = null;
 let editorSession = null;
 
@@ -33,23 +30,6 @@ async function init() {
 
   editorSession = createEditorSession(
     { getGuide, getStepsForGuide, saveGuide, saveStep },
-    { debounceMs: CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS }
-  );
-  await editorSession.load(guideId);
-
-  const guide = editorSession.getGuide();
-  if (!guide) return;
-
-  currentGuide = guide;
-  currentSteps = editorSession.getSteps();
-
-  scheduleSave = createAutoSave(
-    async () => {
-      const g = editorSession.getGuide();
-      g.updatedAt = Date.now();
-      await saveGuide(g);
-      await Promise.all(editorSession.getSteps().map(step => saveStep(step)));
-    },
     {
       debounceMs: CONFIG.EDITOR.AUTOSAVE_DEBOUNCE_MS,
       onSaving: () => {
@@ -60,16 +40,21 @@ async function init() {
           saveStatus.classList.remove('saving');
           saveWhen.textContent = `· ${window.formatDate(Date.now())}`;
         }
-      }
+      },
     }
   );
+  await editorSession.load(guideId);
+
+  const guide = editorSession.getGuide();
+  if (!guide) return;
+
+  currentSteps = editorSession.getSteps();
 
   titleInput.value = guide.title || "";
   descInput.value = guide.description || "";
 
   autoSize(descInput);
 
-  // Setup Meta Chips
   const dateStr = `Recorded ${window.formatDate(guide.createdAt || Date.now())}`;
 
   const dateChip = document.getElementById("guideDateChip");
@@ -88,13 +73,11 @@ async function init() {
 
   titleInput.addEventListener("input", () => {
     editorSession.updateTitle(titleInput.value);
-    scheduleSave();
   });
 
   descInput.addEventListener("input", () => {
     editorSession.updateDescription(descInput.value);
     autoSize(descInput);
-    scheduleSave();
   });
 
   setupExportMenu(exportMenu, exportDropdown, exportBtn, getExportFormats(), async (formatId) => {
@@ -107,23 +90,22 @@ async function init() {
     exportGuide(formatId, editorSession.getGuide(), editorSession.getSteps());
     showToast(toastHost, `Exported as ${formatId.toUpperCase()}`, CONFIG);
   });
-  
+
   renderSteps();
 }
 
 function renderSteps() {
   stepsList.innerHTML = "";
-  
+
   currentSteps.forEach((step, index) => {
     step.order = index + 1;
     const card = createStepElement(step, {
-      onDescChange: scheduleSave,
+      onDescChange: () => editorSession.updateStepDescription(step.id, card.querySelector('.step-desc')?.value ?? ''),
       onDelete: (cardEl) => handleDeleteStep(cardEl, step),
-      onAnnotationChange: scheduleSave
+      onAnnotationChange: () => {},
     });
     stepsList.appendChild(card);
-    
-    // Insert gap
+
     const gap = document.createElement("div");
     gap.className = "insert-gap";
     gap.innerHTML = `<button class="insert-btn">+ Insert</button>`;
@@ -131,7 +113,7 @@ function renderSteps() {
   });
 
   renumber(stepsList, stepCountBadge);
-  
+
   if (currentDragDrop) currentDragDrop.destroy();
   currentDragDrop = createDragDrop(stepsList, {
     document,
@@ -141,7 +123,6 @@ function renderSteps() {
       editorSession.reorder(fromIndex, toIndex);
       currentSteps = editorSession.getSteps();
       renumber(stepsList, stepCountBadge);
-      if (scheduleSave) scheduleSave();
     }
   });
 }
@@ -157,10 +138,8 @@ function handleDeleteStep(card, step) {
   const token = editorSession.deleteStep(step.id);
   currentSteps = editorSession.getSteps();
   renumber(stepsList, stepCountBadge);
-  if (scheduleSave) scheduleSave();
 
   showToast(toastHost, 'Step deleted', CONFIG, async () => {
-    // Undo
     if (placeholderNext) parent.insertBefore(card, placeholderNext); else parent.appendChild(card);
     if (gap) parent.insertBefore(gap, card.nextSibling);
 
@@ -171,29 +150,7 @@ function handleDeleteStep(card, step) {
     if (stepDesc) setTimeout(() => autoSize(stepDesc), 0);
 
     renumber(stepsList, stepCountBadge);
-    if (scheduleSave) scheduleSave();
   });
-}
-
-function syncOrderAndSave() {
-  const domCards = [...stepsList.querySelectorAll('.step')];
-  const newStepsOrder = [];
-  
-  domCards.forEach((card, index) => {
-    const id = card.dataset.id;
-    const step = currentSteps.find(s => s.id === id);
-    if (step) {
-      step.order = index + 1;
-      newStepsOrder.push(step);
-    }
-  });
-
-  // Check if any step was removed
-  const deletedSteps = currentSteps.filter(s => !newStepsOrder.includes(s));
-  deletedSteps.forEach(s => deleteStep(s.id));
-  
-  currentSteps = newStepsOrder;
-  if (scheduleSave) scheduleSave();
 }
 
 init();

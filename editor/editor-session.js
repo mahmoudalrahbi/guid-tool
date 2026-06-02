@@ -1,14 +1,20 @@
-export function createEditorSession(db, { debounceMs = 300 } = {}) {
+export function createEditorSession(db, { debounceMs = 300, onSaving, onSaved } = {}) {
   let guide = null;
   let steps = [];
   let saveTimeout = null;
 
   function scheduleSave() {
+    if (onSaving) onSaving();
     if (saveTimeout) clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       saveTimeout = null;
-      await db.saveGuide(guide);
-      await Promise.all(steps.map(s => db.saveStep(s)));
+      try {
+        await db.saveGuide(guide);
+        await Promise.all(steps.map(s => db.saveStep(s)));
+        if (onSaved) onSaved(true);
+      } catch (err) {
+        if (onSaved) onSaved(false, err);
+      }
     }, debounceMs);
   }
 
@@ -67,8 +73,14 @@ export function createEditorSession(db, { debounceMs = 300 } = {}) {
         clearTimeout(saveTimeout);
         saveTimeout = null;
       }
-      await db.saveGuide(guide);
-      await Promise.all(steps.map(s => db.saveStep(s)));
+      try {
+        await db.saveGuide(guide);
+        await Promise.all(steps.map(s => db.saveStep(s)));
+        if (onSaved) onSaved(true);
+      } catch (err) {
+        if (onSaved) onSaved(false, err);
+        throw err;
+      }
     },
     getGuide() {
       return { ...guide };
