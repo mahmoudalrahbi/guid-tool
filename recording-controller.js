@@ -2,6 +2,18 @@
 // Testable factory that encapsulates Recording Session orchestration logic.
 // All Chrome API surfaces are injected via deps — no direct chrome.* calls here.
 
+var recordingSession = typeof require === 'function'
+  ? require('./recording-session.js')
+  : globalThis.RecordingSession;
+
+var startSession     = recordingSession.startSession;
+var recordStep       = recordingSession.recordStep;
+var pauseSession     = recordingSession.pauseSession;
+var resumeSession    = recordingSession.resumeSession;
+var navigate         = recordingSession.navigate;
+var completeSession  = recordingSession.completeSession;
+var canCapture       = recordingSession.canCapture;
+
 function createRecordingController(deps) {
   var storage = deps.storage;
   var tabs = deps.tabs;
@@ -28,8 +40,8 @@ function createRecordingController(deps) {
     var guideId = 'guide-' + Date.now();
     var tab = await tabs.get(tabId);
 
-    var session = { guideId: guideId, tabId: tabId, stepCount: 0, active: true, lastUrl: tab.url, paused: false };
-    await storage.set({ session: session });
+    var session = startSession({ guideId, tabId, url: tab.url });
+    await storage.set({ session });
 
     await db.saveGuide({ id: guideId, title: 'Untitled Guide', createdAt: Date.now(), url: tab.url });
 
@@ -41,7 +53,7 @@ function createRecordingController(deps) {
   async function handleClickCaptured(metadata) {
     var result = await storage.get('session');
     var session = result.session;
-    if (!session || !session.active || session.paused) return;
+    if (!session || !canCapture(session)) return;
 
     try {
       var capture = getStepCapture();
@@ -51,8 +63,9 @@ function createRecordingController(deps) {
         stepCount: session.stepCount,
         lastUrl: session.lastUrl,
       });
-      var step = captureResult.step;
-      await storage.set({ session: Object.assign({}, session, { stepCount: step.order }) });
+      var nextSession = recordStep(session);
+      nextSession = Object.assign({}, nextSession, { stepCount: captureResult.step.order });
+      await storage.set({ session: nextSession });
     } catch (e) {
       // swallow — tab not capturable or db write failed
     }
@@ -63,7 +76,7 @@ function createRecordingController(deps) {
     var session = result.session;
     if (!session) return { ok: false };
 
-    await storage.set({ session: Object.assign({}, session, { active: false }) });
+    await storage.set({ session: completeSession(session) });
 
     await tabs.sendMessage(session.tabId, { type: 'RECORDING_STOPPED' }).catch(function() {});
 
@@ -78,7 +91,7 @@ function createRecordingController(deps) {
     var session = result.session;
     if (!session || !session.active) return { ok: false };
 
-    await storage.set({ session: Object.assign({}, session, { paused: true }) });
+    await storage.set({ session: pauseSession(session) });
     await tabs.sendMessage(session.tabId, { type: 'RECORDING_PAUSED' }).catch(function() {});
     return { ok: true };
   }
@@ -88,7 +101,7 @@ function createRecordingController(deps) {
     var session = result.session;
     if (!session || !session.active) return { ok: false };
 
-    await storage.set({ session: Object.assign({}, session, { paused: false }) });
+    await storage.set({ session: resumeSession(session) });
     await tabs.sendMessage(session.tabId, { type: 'RECORDING_RESUMED' }).catch(function() {});
     return { ok: true };
   }
@@ -102,16 +115,16 @@ function createRecordingController(deps) {
       await tabs.sendMessage(tabId, { type: 'RECORDING_STARTED', paused: session.paused }).catch(function() {});
     }
 
-    if (session.paused) return;
+    if (!canCapture(session)) return;
 
     if (tab.status === 'complete' && tab.url !== session.lastUrl && !tab.url.startsWith('chrome://')) {
       var newUrl = tab.url;
-      await storage.set({ session: Object.assign({}, session, { lastUrl: newUrl }) });
+      await storage.set({ session: navigate(session, newUrl) });
 
       setTimeout(async function() {
         var latestResult = await storage.get('session');
         var currentSession = latestResult.session;
-        if (!currentSession || !currentSession.active) return;
+        if (!currentSession || !canCapture(currentSession)) return;
 
         try {
           var capture = getStepCapture();

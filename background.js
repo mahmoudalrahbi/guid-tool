@@ -2,7 +2,7 @@
 // Recording Session logic lives in recording-controller.js.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js", "step-capture.js", "recording-controller.js");
+importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js", "step-capture.js", "recording-session.js", "recording-controller.js");
 
 function buildStepCapture() {
   return createStepCapture({
