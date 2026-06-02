@@ -35,13 +35,29 @@ export function getExportFormats() {
   return Object.values(formats);
 }
 
+export async function projectStep(step, compositeFn, deps) {
+  const blob = step.annotation ? await compositeFn(step) : step.screenshotBlob;
+  const imageDataUrl = await deps.blobToDataUrl(blob);
+  const imageBytes = await blob.arrayBuffer();
+  const { width, height } = await getImageDimensions(blob, deps);
+  return { ...step, imageDataUrl, imageBytes, width, height };
+}
+
+function getImageDimensions(blob, deps) {
+  return new Promise((resolve) => {
+    const url = deps.URL.createObjectURL(blob);
+    const img = new deps.Image();
+    img.onload = () => { deps.URL.revokeObjectURL(url); resolve({ width: img.width, height: img.height }); };
+    img.onerror = () => { deps.URL.revokeObjectURL(url); resolve({ width: 600, height: 400 }); };
+    img.src = url;
+  });
+}
+
 export async function exportGuide(formatId, guide, steps) {
   const format = formats[formatId];
   if (!format) {
     throw new Error(`Unknown export format: ${formatId}`);
   }
-
-  const exportSteps = steps.map(step => globalThis.toExportStep(step, composite));
 
   const deps = {
     blobToDataUrl: globalThis.blobToDataUrl,
@@ -53,8 +69,9 @@ export async function exportGuide(formatId, guide, steps) {
     Image: globalThis.Image,
   };
 
-  const blob = await format.exportFn(guide, exportSteps, deps);
-  
+  const renderedSteps = await Promise.all(steps.map(step => projectStep(step, composite, deps)));
+  const blob = await format.exportFn(guide, renderedSteps, deps);
+
   // Download the blob
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

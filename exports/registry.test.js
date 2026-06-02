@@ -1,5 +1,6 @@
 import test, { describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
+import { projectStep } from "./registry.js";
 
 describe("Export Registry", () => {
   const calls = { html: 0, pdf: 0, markdown: 0, docx: 0 };
@@ -128,6 +129,60 @@ describe("Export Registry", () => {
   });
 });
 
+// ── Rendered Step projection ──────────────────────────────────────────────────
 
+function makeProjectDeps() {
+  return {
+    blobToDataUrl: async () => 'data:image/jpeg;base64,fake',
+    URL: { createObjectURL: () => 'blob:fake', revokeObjectURL: () => {} },
+    Image: class {
+      constructor() {
+        setTimeout(() => { this.width = 800; this.height = 600; if (this.onload) this.onload(); }, 0);
+      }
+    },
+  };
+}
 
+test('projectStep populates imageDataUrl for a click Step', async () => {
+  const blob = new Blob(['img']);
+  const step = { id: 's1', order: 1, stepType: 'click', annotation: { x: 0.5, y: 0.5 }, screenshotBlob: blob };
+  const fakeComposite = async () => blob;
 
+  const rendered = await projectStep(step, fakeComposite, makeProjectDeps());
+  assert.strictEqual(rendered.imageDataUrl, 'data:image/jpeg;base64,fake');
+});
+
+test('projectStep populates imageBytes as ArrayBuffer', async () => {
+  const blob = new Blob(['hello']);
+  const step = { id: 's1', order: 1, stepType: 'click', annotation: { x: 0 }, screenshotBlob: blob };
+  const rendered = await projectStep(step, async () => blob, makeProjectDeps());
+  assert.ok(rendered.imageBytes instanceof ArrayBuffer);
+});
+
+test('projectStep populates width and height from image dimensions', async () => {
+  const blob = new Blob(['img']);
+  const step = { id: 's1', order: 1, stepType: 'click', annotation: { x: 0 }, screenshotBlob: blob };
+  const rendered = await projectStep(step, async () => blob, makeProjectDeps());
+  assert.strictEqual(rendered.width, 800);
+  assert.strictEqual(rendered.height, 600);
+});
+
+test('projectStep does not call composite for a navigation Step (no annotation)', async () => {
+  const blob = new Blob(['nav']);
+  const step = { id: 's2', order: 2, stepType: 'navigation', screenshotBlob: blob };
+  let compositeCalled = false;
+  const fakeComposite = async () => { compositeCalled = true; return blob; };
+
+  const rendered = await projectStep(step, fakeComposite, makeProjectDeps());
+  assert.equal(compositeCalled, false, 'composite must not be called for navigation Steps');
+  assert.ok(rendered.imageDataUrl, 'imageDataUrl must still be populated');
+});
+
+test('projectStep preserves all original step fields', async () => {
+  const blob = new Blob(['img']);
+  const step = { id: 's1', order: 3, stepType: 'click', description: 'Click here', annotation: { x: 0 }, screenshotBlob: blob };
+  const rendered = await projectStep(step, async () => blob, makeProjectDeps());
+  assert.strictEqual(rendered.id, 's1');
+  assert.strictEqual(rendered.order, 3);
+  assert.strictEqual(rendered.description, 'Click here');
+});

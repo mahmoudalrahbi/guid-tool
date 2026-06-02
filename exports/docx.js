@@ -3,7 +3,6 @@ export async function exportToDocx(guide, steps, deps) {
 
   const children = [];
 
-  // Cover Page: Title
   children.push(
     new Paragraph({
       text: guide.title || "Untitled Guide",
@@ -12,7 +11,6 @@ export async function exportToDocx(guide, steps, deps) {
     })
   );
 
-  // Cover Page: Description
   if (guide.description) {
     children.push(
       new Paragraph({
@@ -22,7 +20,6 @@ export async function exportToDocx(guide, steps, deps) {
     );
   }
 
-  // Cover Page: Footer
   children.push(
     new Paragraph({
       children: [
@@ -36,32 +33,24 @@ export async function exportToDocx(guide, steps, deps) {
     })
   );
 
-  // Steps
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
 
-    // Heading for the step
     const headingOpts = {
       text: `STEP ${step.order.toString().padStart(2, '0')}`,
       heading: HeadingLevel.HEADING_2,
-      keepNext: true, // Keep heading with image
+      keepNext: true,
     };
-    
-    // Start steps on a new page
+
     if (i === 0) {
       headingOpts.pageBreakBefore = true;
     }
 
     children.push(new Paragraph(headingOpts));
 
-    // Get composited blob (annotations rendered in) then read as arrayBuffer for ImageRun
-    const compositedBlob = await step.composite();
-    const arrayBuffer = await compositedBlob.arrayBuffer();
-    const dims = await getImageDimensions(compositedBlob, deps);
-    
     const maxWidth = 600;
-    let width = dims.width;
-    let height = dims.height;
+    let width = step.width;
+    let height = step.height;
     if (width > maxWidth) {
       height = Math.round((height * maxWidth) / width);
       width = maxWidth;
@@ -71,14 +60,11 @@ export async function exportToDocx(guide, steps, deps) {
       new Paragraph({
         children: [
           new ImageRun({
-            data: arrayBuffer,
-            transformation: {
-              width: width,
-              height: height,
-            },
+            data: step.imageBytes,
+            transformation: { width, height },
           }),
         ],
-        keepNext: !!step.description, // Keep image with description if it exists
+        keepNext: !!step.description,
         spacing: { after: 200 },
       })
     );
@@ -94,29 +80,8 @@ export async function exportToDocx(guide, steps, deps) {
   }
 
   const doc = new Document({
-    sections: [
-      {
-        properties: {},
-        children: children,
-      },
-    ],
+    sections: [{ properties: {}, children }],
   });
 
   return await Packer.toBlob(doc);
-}
-
-function getImageDimensions(blob, deps) {
-  return new Promise((resolve) => {
-    const url = deps.URL.createObjectURL(blob);
-    const img = new deps.Image();
-    img.onload = () => {
-      deps.URL.revokeObjectURL(url);
-      resolve({ width: img.width, height: img.height });
-    };
-    img.onerror = () => {
-      deps.URL.revokeObjectURL(url);
-      resolve({ width: 600, height: 400 }); // fallback
-    };
-    img.src = url;
-  });
 }
