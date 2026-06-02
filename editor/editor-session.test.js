@@ -296,3 +296,91 @@ test('EditorSession: getGuide returns a shallow copy (mutations do not affect in
   g.title = 'Mutated externally';
   assert.equal(session.getGuide().title, 'Original');
 });
+
+// ── Single persistence owner ──────────────────────────────────────────────────
+
+test('EditorSession: a burst of mutations within one debounce window fires exactly one saveGuide call', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  let saveGuideCallCount = 0;
+  const db = {
+    getGuide: async () => ({ id: 'g1', title: 'G', description: '' }),
+    getStepsForGuide: async () => [],
+    saveGuide: async () => { saveGuideCallCount++; },
+    saveStep: async () => {},
+  };
+  const session = createEditorSession(db, { debounceMs: 50 });
+  await session.load('g1');
+
+  session.updateTitle('A');
+  session.updateTitle('B');
+  session.updateTitle('C');
+
+  await new Promise(r => setTimeout(r, 100));
+  assert.equal(saveGuideCallCount, 1, 'saveGuide must be called exactly once per idle window');
+});
+
+test('EditorSession: onSaving callback is called immediately when a mutation is made', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, []);
+  const savingEvents = [];
+  const session = createEditorSession(db, {
+    debounceMs: 10000,
+    onSaving: () => savingEvents.push('saving'),
+  });
+  await session.load('g1');
+  session.updateTitle('New');
+  assert.equal(savingEvents.length, 1);
+  assert.equal(savingEvents[0], 'saving');
+  session.cancel();
+});
+
+test('EditorSession: onSaved(true) is called once after the debounce window completes', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, []);
+  const savedEvents = [];
+  const session = createEditorSession(db, {
+    debounceMs: 0,
+    onSaved: (success) => savedEvents.push(success),
+  });
+  await session.load('g1');
+  session.updateTitle('A');
+  session.updateTitle('B');
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(savedEvents.length, 1, 'onSaved must be called exactly once');
+  assert.equal(savedEvents[0], true);
+});
+
+test('EditorSession: onSaved(false) is called when saveGuide throws', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = {
+    getGuide: async () => ({ id: 'g1', title: 'G' }),
+    getStepsForGuide: async () => [],
+    saveGuide: async () => { throw new Error('disk full'); },
+    saveStep: async () => {},
+  };
+  const savedEvents = [];
+  const session = createEditorSession(db, {
+    debounceMs: 0,
+    onSaved: (success) => savedEvents.push(success),
+  });
+  await session.load('g1');
+  session.updateTitle('Fail');
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(savedEvents.length, 1);
+  assert.equal(savedEvents[0], false);
+});
+
+test('EditorSession: flush() calls onSaved after draining the pending write', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, []);
+  const savedEvents = [];
+  const session = createEditorSession(db, {
+    debounceMs: 10000,
+    onSaved: (success) => savedEvents.push(success),
+  });
+  await session.load('g1');
+  session.updateTitle('Flush me');
+  await session.flush();
+  assert.equal(savedEvents.length, 1);
+  assert.equal(savedEvents[0], true);
+});
