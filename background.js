@@ -1,9 +1,8 @@
-// Background service worker — orchestrates Recording Sessions.
+// Background service worker — entry point only.
+// Recording Session logic lives in recording-controller.js.
 // Persists state to chrome.storage.local (not memory) so SW restarts are safe.
 
-importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js", "step-capture.js");
-
-var stepCapture = null;
+importScripts("config.js", "messages.js", "db-core.js", "utils.js", "describer.js", "step-capture.js", "recording-controller.js");
 
 function buildStepCapture() {
   return createStepCapture({
@@ -18,130 +17,51 @@ function buildStepCapture() {
   });
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === MSG_START_RECORDING) {
-    handleStartRecording(msg.tabId).then(sendResponse);
-    return true;
-  }
-  if (msg.type === MSG_CLICK_CAPTURED) {
-    handleClickCaptured(msg.metadata);
-    return false;
-  }
-  if (msg.type === MSG_COMPLETE_CAPTURE) {
-    handleCompleteCapture().then(sendResponse);
-    return true;
-  }
-  if (msg.type === MSG_PAUSE_RECORDING) {
-    handlePauseRecording().then(sendResponse);
-    return true;
-  }
-  if (msg.type === MSG_RESUME_RECORDING) {
-    handleResumeRecording().then(sendResponse);
-    return true;
-  }
+var ctrl = createRecordingController({
+  storage: {
+    get: (key) => chrome.storage.local.get(key),
+    set: (obj) => chrome.storage.local.set(obj),
+  },
+  tabs: {
+    get: (tabId) => chrome.tabs.get(tabId),
+    sendMessage: (tabId, msg) => chrome.tabs.sendMessage(tabId, msg),
+    create: (opts) => chrome.tabs.create(opts),
+  },
+  sidePanel: {
+    open: (opts) => chrome.sidePanel.open(opts),
+    setOptions: (opts) => chrome.sidePanel.setOptions(opts),
+  },
+  runtime: {
+    getURL: (path) => chrome.runtime.getURL(path),
+    sendMessage: (msg) => chrome.runtime.sendMessage(msg),
+  },
+  buildStepCapture: buildStepCapture,
+  db: { saveGuide },
+  config: CONFIG,
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  const { session } = await chrome.storage.local.get("session");
-  if (!session?.active || session.tabId !== tabId) return;
+chrome.runtime.onMessage.addListener(createRouter({
+  [MSG_START_RECORDING]: (msg, _sender, sendResponse) => {
+    ctrl.handleStartRecording(msg.tabId).then(sendResponse);
+    return true;
+  },
+  [MSG_CLICK_CAPTURED]: (msg) => {
+    ctrl.handleClickCaptured(msg.metadata);
+  },
+  [MSG_COMPLETE_CAPTURE]: (_msg, _sender, sendResponse) => {
+    ctrl.handleCompleteCapture().then(sendResponse);
+    return true;
+  },
+  [MSG_PAUSE_RECORDING]: (_msg, _sender, sendResponse) => {
+    ctrl.handlePauseRecording().then(sendResponse);
+    return true;
+  },
+  [MSG_RESUME_RECORDING]: (_msg, _sender, sendResponse) => {
+    ctrl.handleResumeRecording().then(sendResponse);
+    return true;
+  },
+}));
 
-  if (changeInfo.status === "complete") {
-    await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: session.paused }).catch(() => {});
-  }
-
-  if (session.paused) return;
-
-  if (tab.status === "complete" && tab.url !== session.lastUrl && !tab.url.startsWith("chrome://")) {
-    const newUrl = tab.url;
-    await chrome.storage.local.set({ session: { ...session, lastUrl: newUrl } });
-
-    setTimeout(async () => {
-      const { session: currentSession } = await chrome.storage.local.get("session");
-      if (!currentSession?.active) return;
-
-      if (!stepCapture) stepCapture = buildStepCapture();
-      try {
-        const { step } = await stepCapture.captureNavigation(newUrl, {
-          tabId: currentSession.tabId,
-          guideId: currentSession.guideId,
-          stepCount: currentSession.stepCount,
-        });
-        await chrome.storage.local.set({ session: { ...currentSession, stepCount: step.order } });
-      } catch {
-        // Tab not capturable or db write failed — step silently dropped for navigation
-      }
-    }, CONFIG.UI_NAV_DELAY_MS);
-  }
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  ctrl.handleTabUpdate(tabId, changeInfo, tab);
 });
-
-async function handleStartRecording(tabId) {
-  // MUST open the side panel immediately to preserve the user gesture token!
-  await chrome.sidePanel.open({ tabId });
-  await chrome.sidePanel.setOptions({ tabId, path: "sidepanel.html", enabled: true });
-
-  const guideId = `guide-${Date.now()}`;
-  const tab = await chrome.tabs.get(tabId);
-
-  await chrome.storage.local.set({
-    session: { guideId, tabId, stepCount: 0, active: true, lastUrl: tab.url, paused: false },
-  });
-
-  await saveGuide({ id: guideId, title: "Untitled Guide", createdAt: Date.now(), url: tab.url });
-
-  stepCapture = buildStepCapture();
-
-  // Tell content script on that tab to start listening
-  await chrome.tabs.sendMessage(tabId, { type: MSG_RECORDING_STARTED, paused: false }).catch(() => {});
-
-  return { ok: true };
-}
-
-async function handlePauseRecording() {
-  const { session } = await chrome.storage.local.get("session");
-  if (!session?.active) return { ok: false };
-  await chrome.storage.local.set({ session: { ...session, paused: true } });
-  await chrome.tabs.sendMessage(session.tabId, { type: MSG_RECORDING_PAUSED }).catch(() => {});
-  return { ok: true };
-}
-
-async function handleResumeRecording() {
-  const { session } = await chrome.storage.local.get("session");
-  if (!session?.active) return { ok: false };
-  await chrome.storage.local.set({ session: { ...session, paused: false } });
-  await chrome.tabs.sendMessage(session.tabId, { type: MSG_RECORDING_RESUMED }).catch(() => {});
-  return { ok: true };
-}
-
-async function handleClickCaptured(metadata) {
-  const { session } = await chrome.storage.local.get("session");
-  if (!session?.active || session.paused) return;
-
-  if (!stepCapture) stepCapture = buildStepCapture();
-  try {
-    const { step } = await stepCapture.captureClick(metadata, {
-      tabId: session.tabId,
-      guideId: session.guideId,
-      stepCount: session.stepCount,
-      lastUrl: session.lastUrl,
-    });
-    await chrome.storage.local.set({ session: { ...session, stepCount: step.order } });
-  } catch {
-    // Tab not capturable or db write failed
-  }
-}
-
-async function handleCompleteCapture() {
-  const { session } = await chrome.storage.local.get("session");
-  if (!session) return { ok: false };
-
-  await chrome.storage.local.set({ session: { ...session, active: false } });
-
-  // Tell content script to stop
-  await chrome.tabs.sendMessage(session.tabId, { type: MSG_RECORDING_STOPPED }).catch(() => {});
-
-  // Open Editor in new tab
-  const editorUrl = chrome.runtime.getURL(`editor.html?guideId=${session.guideId}`);
-  await chrome.tabs.create({ url: editorUrl });
-
-  return { ok: true };
-}

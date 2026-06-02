@@ -148,3 +148,45 @@ test('toExportStep: composite() calls the compositor with the stored step and re
   assert.ok(receivedStep !== null);
   assert.equal(receivedStep.id, step.id);
 });
+
+// --- createRouter ---
+
+const { createRouter } = messages;
+
+test('createRouter: calls the correct handler for a known message type', () => {
+  let called = false;
+  const listener = createRouter({
+    STEP_ADDED: () => { called = true; },
+  });
+  listener({ type: 'STEP_ADDED' }, {}, () => {});
+  assert.equal(called, true);
+});
+
+test('createRouter: passes msg, sender, and sendResponse to the handler', () => {
+  let receivedArgs = null;
+  const msg = { type: 'STEP_ADDED', payload: 42 };
+  const sender = { tab: { id: 7 } };
+  const sendResponse = () => {};
+  const listener = createRouter({
+    STEP_ADDED: (m, s, sr) => { receivedArgs = [m, s, sr]; },
+  });
+  listener(msg, sender, sendResponse);
+  assert.equal(receivedArgs[0], msg);
+  assert.equal(receivedArgs[1], sender);
+  assert.equal(receivedArgs[2], sendResponse);
+});
+
+test('createRouter: does not throw for an unknown message type', () => {
+  const listener = createRouter({
+    STEP_ADDED: () => {},
+  });
+  assert.doesNotThrow(() => listener({ type: 'UNKNOWN_TYPE' }, {}, () => {}));
+});
+
+test('createRouter: forwards the return value of the matched handler', () => {
+  const listener = createRouter({
+    STEP_ADDED: () => true,
+  });
+  const result = listener({ type: 'STEP_ADDED' }, {}, () => {});
+  assert.equal(result, true);
+});

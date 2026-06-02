@@ -76,11 +76,9 @@ resumeBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: MSG_RESUME_RECORDING });
 });
 
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === MSG_STEP_ADDED) {
-    addStepToList(msg.step);
-  }
-});
+chrome.runtime.onMessage.addListener(createRouter({
+  [MSG_STEP_ADDED]: (msg) => { addStepToList(msg.step); },
+}));
 
 completeBtn.addEventListener("click", () => {
   completeBtn.disabled = true;
