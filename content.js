@@ -4,15 +4,12 @@
 let recording = false;
 let paused = false;
 
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === MSG_RECORDING_STARTED) {
-    recording = true;
-    paused = msg.paused || false;
-  }
-  if (msg.type === MSG_RECORDING_STOPPED) recording = false;
-  if (msg.type === MSG_RECORDING_PAUSED) paused = true;
-  if (msg.type === MSG_RECORDING_RESUMED) paused = false;
-});
+chrome.runtime.onMessage.addListener(createRouter({
+  [MSG_RECORDING_STARTED]: (msg) => { recording = true; paused = msg.paused || false; },
+  [MSG_RECORDING_STOPPED]: () => { recording = false; },
+  [MSG_RECORDING_PAUSED]:  () => { paused = true; },
+  [MSG_RECORDING_RESUMED]: () => { paused = false; },
+}));
 
 document.addEventListener("click", (e) => {
   if (!recording || paused) return;

@@ -99,6 +99,20 @@ function toExportStep(storedStep, compositor) {
   return validated;
 }
 
+/**
+ * Creates a Chrome runtime message listener that dispatches to per-type handlers.
+ * Returns a listener function `(msg, sender, sendResponse) => void`.
+ * Unknown message types are silently ignored.
+ */
+function createRouter(handlers) {
+  return function(msg, sender, sendResponse) {
+    var handler = handlers[msg.type];
+    if (handler) {
+      return handler(msg, sender, sendResponse);
+    }
+  };
+}
+
 // CJS export for node:test runner. Ignored in browser context.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -115,5 +129,6 @@ if (typeof module !== 'undefined' && module.exports) {
     createStoredStep,
     toStepMessage,
     toExportStep,
+    createRouter,
   };
 }
