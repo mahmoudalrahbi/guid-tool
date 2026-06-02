@@ -74,12 +74,13 @@ function _setupAnnotationOverlay(img, svg, step, onAnnotationChange) {
   const ann = step.annotation || {};
   const color = ann.color || "#f59e0b";
   const radiusPx = ann.radius || 28;
+  const dpr = ann.dpr || 1;
 
   // Create the draggable circle element inside the SVG namespace
   const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   circle.setAttribute("fill", "none");
   circle.setAttribute("stroke", color);
-  circle.setAttribute("stroke-width", "3");
+  circle.setAttribute("stroke-width", String((ann.strokeWidth || 3) * dpr));
   circle.style.cursor = "grab";
   svg.appendChild(circle);
 
@@ -88,16 +89,17 @@ function _setupAnnotationOverlay(img, svg, step, onAnnotationChange) {
     const natW = img.naturalWidth || img.width || 1;
     const natH = img.naturalHeight || img.height || 1;
 
-    // SVG viewBox matches natural image resolution so we can use annotation coords directly
+    // viewBox is in physical pixels (same space as the captured screenshot).
+    // ann.x / ann.y are CSS pixels, so multiply by dpr to convert.
     svg.setAttribute("viewBox", `0 0 ${natW} ${natH}`);
     svg.setAttribute("preserveAspectRatio", "none");
 
-    const cx = ann.x != null ? ann.x : natW / 2;
-    const cy = ann.y != null ? ann.y : natH / 2;
+    const cx = ann.x != null ? ann.x * dpr : natW / 2;
+    const cy = ann.y != null ? ann.y * dpr : natH / 2;
 
     circle.setAttribute("cx", cx);
     circle.setAttribute("cy", cy);
-    circle.setAttribute("r", radiusPx);
+    circle.setAttribute("r", radiusPx * dpr);
   }
 
   if (img.complete && img.naturalWidth) {
@@ -154,8 +156,8 @@ function _setupAnnotationOverlay(img, svg, step, onAnnotationChange) {
     const newCx = parseFloat(circle.getAttribute("cx")) || 0;
     const newCy = parseFloat(circle.getAttribute("cy")) || 0;
 
-    // Persist back to the step's annotation in memory and trigger auto-save
-    step.annotation = { ...ann, x: newCx, y: newCy };
+    // Convert back from physical-pixel SVG coords to CSS pixels before persisting
+    step.annotation = { ...ann, x: newCx / dpr, y: newCy / dpr };
     // Update local alias so subsequent drags use the updated position
     Object.assign(ann, step.annotation);
 
