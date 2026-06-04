@@ -159,6 +159,33 @@ test('composite: returns screenshotBlob for click step when annotation is null',
   assert.equal(result, blob);
 });
 
+test('composite: legacy annotation missing dpr defaults dpr to 1 — coordinates placed without scaling', async () => {
+  const { composite } = await import('./annotation-renderer.js');
+  const blob = new Blob(['img'], { type: 'image/jpeg' });
+  const annotation = { x: 75, y: 80, radius: 28, color: '#f59e0b', strokeWidth: 3 };
+  await composite({ stepType: 'click', screenshotBlob: blob, annotation });
+
+  const arcCall = ctxCalls.find(c => c.method === 'arc');
+  assert.ok(arcCall, 'arc should be called');
+  assert.equal(arcCall.args[0], 75, 'cx = x * 1 when dpr is absent');
+  assert.equal(arcCall.args[1], 80, 'cy = y * 1 when dpr is absent');
+  assert.equal(arcCall.args[2], 28, 'r = radius * 1 when dpr is absent');
+});
+
+test('composite: legacy annotation missing dpr resolves to a Blob without NaN arc coordinates', async () => {
+  const { composite } = await import('./annotation-renderer.js');
+  const blob = new Blob(['img'], { type: 'image/jpeg' });
+  const annotation = { x: 50, y: 60, radius: 20, color: '#ff0000', strokeWidth: 3 };
+  const result = await composite({ stepType: 'click', screenshotBlob: blob, annotation });
+
+  assert.ok(result instanceof Blob, 'should resolve to a Blob');
+  const arcCall = ctxCalls.find(c => c.method === 'arc');
+  assert.ok(arcCall, 'arc should be called');
+  assert.ok(!isNaN(arcCall.args[0]), 'cx must not be NaN');
+  assert.ok(!isNaN(arcCall.args[1]), 'cy must not be NaN');
+  assert.ok(!isNaN(arcCall.args[2]), 'r must not be NaN');
+});
+
 // --- compositeThumbnail ---
 
 test('compositeThumbnail: returns a JPEG data URL', async () => {
