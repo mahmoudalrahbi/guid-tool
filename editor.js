@@ -102,7 +102,7 @@ function renderSteps() {
     const card = createStepElement(step, {
       onDescChange: () => editorSession.updateStepDescription(step.id, card.querySelector('.step-desc')?.value ?? ''),
       onDelete: (cardEl) => handleDeleteStep(cardEl, step),
-      onAnnotationChange: () => {},
+      onAnnotationChange: () => editorSession.updateStepAnnotation(step.id),
     });
     stepsList.appendChild(card);
 

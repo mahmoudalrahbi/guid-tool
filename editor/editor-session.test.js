@@ -384,3 +384,37 @@ test('EditorSession: flush() calls onSaved after draining the pending write', as
   assert.equal(savedEvents.length, 1);
   assert.equal(savedEvents[0], true);
 });
+
+// ── updateStepAnnotation ──────────────────────────────────────────────────────
+
+test('EditorSession: updateStepAnnotation schedules a save with the updated annotation', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'Click here', annotation: { x: 100, y: 200, dpr: 1 } },
+  ]);
+  const session = createEditorSession(db, { debounceMs: 0 });
+  await session.load('g1');
+
+  // Simulate what step-card.js does: mutate annotation on the shared step reference
+  const steps = session.getSteps();
+  steps[0].annotation = { x: 300, y: 400, dpr: 2 };
+
+  session.updateStepAnnotation('s1');
+  await new Promise(r => setTimeout(r, 20));
+
+  assert.ok(db.saved.steps.length > 0, 'saveStep should have been called');
+  assert.deepEqual(db.saved.steps[0].annotation, { x: 300, y: 400, dpr: 2 });
+});
+
+test('EditorSession: updateStepAnnotation with unknown stepId is a no-op', async () => {
+  const { createEditorSession } = await import('./editor-session.js');
+  const db = makeDb({ id: 'g1', title: 'G' }, [
+    { id: 's1', order: 1, description: 'A', annotation: { x: 10, y: 20, dpr: 1 } },
+  ]);
+  const session = createEditorSession(db, { debounceMs: 0 });
+  await session.load('g1');
+
+  assert.doesNotThrow(() => session.updateStepAnnotation('nonexistent'));
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(db.saved.steps.length, 0, 'saveStep should not be called for unknown stepId');
+});

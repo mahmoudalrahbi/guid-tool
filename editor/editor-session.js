@@ -40,6 +40,10 @@ export function createEditorSession(db, { debounceMs = 300, onSaving, onSaved } 
         scheduleSave();
       }
     },
+    updateStepAnnotation(stepId) {
+      const step = steps.find(s => s.id === stepId);
+      if (step) scheduleSave();
+    },
     reorder(fromIndex, toIndex) {
       const [item] = steps.splice(fromIndex, 1);
       steps.splice(toIndex, 0, item);
