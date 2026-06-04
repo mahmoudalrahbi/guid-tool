@@ -114,12 +114,14 @@ function _setupAnnotationOverlay(img, svg, step, onAnnotationChange) {
   let startPointerY = 0;
   let startCx = 0;
   let startCy = 0;
+  let dragRect = null;
 
   circle.addEventListener("pointerdown", (e) => {
     e.stopPropagation(); // prevent card-level drag-to-reorder
     e.preventDefault();
     circle.setPointerCapture(e.pointerId);
     dragging = true;
+    dragRect = svg.getBoundingClientRect();
     startPointerX = e.clientX;
     startPointerY = e.clientY;
     startCx = parseFloat(circle.getAttribute("cx")) || 0;
@@ -132,7 +134,7 @@ function _setupAnnotationOverlay(img, svg, step, onAnnotationChange) {
     e.preventDefault();
 
     // Convert pointer delta (CSS px) to SVG/natural-image coordinate space
-    const rect = svg.getBoundingClientRect();
+    const rect = dragRect;
     const natW = img.naturalWidth || 1;
     const natH = img.naturalHeight || 1;
     const scaleX = natW / (rect.width || 1);
