@@ -47,7 +47,7 @@ export async function composite(step) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(bitmap, 0, 0);
 
-    drawCircle(ctx, step.annotation);
+    drawCircle(ctx, { ...step.annotation, dpr: step.annotation.dpr || 1 });
 
     return canvas.convertToBlob({ type: `image/${CONFIG.CAPTURE_FORMAT}`, quality: CONFIG.ANNOTATED_QUALITY });
   }
