@@ -80,6 +80,8 @@ function createRecordingController(deps) {
 
     await tabs.sendMessage(session.tabId, { type: 'RECORDING_STOPPED' }).catch(function() {});
 
+    // The side panel closes itself via window.close() in sidepanel.js — a global
+    // (manifest default_path) panel cannot be closed from the background.
     var editorUrl = runtime.getURL('editor.html?guideId=' + session.guideId);
     await tabs.create({ url: editorUrl });
 
