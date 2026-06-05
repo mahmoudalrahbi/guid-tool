@@ -13,7 +13,7 @@ function makeDeps(overrides = {}) {
       set: async (obj) => { Object.assign(stored, obj); },
     },
     tabs: {
-      get: async (tabId) => ({ id: tabId, url: 'https://example.com' }),
+      get: async (tabId) => ({ id: tabId, url: 'https://example.com', windowId: 99 }),
       sendMessage: async () => {},
       create: async () => {},
     },
@@ -224,6 +224,7 @@ test('handleCompleteCapture opens the Editor tab with the correct URL', async ()
   assert.ok(created[0].url.includes('editor.html'), 'editor.html must be in the URL');
   assert.ok(created[0].url.includes('g-1'), 'guideId must be in the URL');
 });
+
 
 test('handleCompleteCapture returns {ok: true}', async () => {
   const deps = makeDeps();

@@ -83,7 +83,13 @@ chrome.runtime.onMessage.addListener(createRouter({
 completeBtn.addEventListener("click", () => {
   completeBtn.disabled = true;
   completeBtn.innerHTML = "Finishing…";
-  chrome.runtime.sendMessage({ type: MSG_COMPLETE_CAPTURE });
+  // The panel must close itself: chrome.sidePanel.close() rejects for a global
+  // (manifest default_path) panel, so the background can't dismiss it. window.close()
+  // from inside the panel document reliably closes it while leaving the recording
+  // tab untouched. Wait for the background's response so the Editor tab opens first.
+  chrome.runtime.sendMessage({ type: MSG_COMPLETE_CAPTURE }, () => {
+    window.close();
+  });
 });
 
 function addStepToList(step) {
